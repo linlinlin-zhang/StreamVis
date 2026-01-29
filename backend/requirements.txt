@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+websockets
+pydantic
+langchain
+chromadb
+openai
+numpy
+networkx
+python-dotenv
