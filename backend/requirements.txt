@@ -1,10 +1,6 @@
 fastapi
-uvicorn
-websockets
+uvicorn[standard]
 pydantic
-langchain
-chromadb
-openai
 numpy
 networkx
 python-dotenv
