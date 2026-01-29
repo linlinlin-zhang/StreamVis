@@ -1,7 +1,7 @@
-import React from 'react';
-import { RefreshCw, Trash2 } from 'lucide-react';
+import React, { useRef } from 'react';
+import { RefreshCw, Trash2, Upload } from 'lucide-react';
 
-const TopBar = ({ status, statusText, onReconnect, onClear }) => {
+const TopBar = ({ status, statusText, onReconnect, onClear, onUploadFile, uploadDisabled }) => {
   const dotClass =
     status === 'connected'
       ? 'connected'
@@ -10,6 +10,8 @@ const TopBar = ({ status, statusText, onReconnect, onClear }) => {
         : status === 'error'
           ? 'error'
           : '';
+
+  const fileInputRef = useRef(null);
 
   return (
     <div className="topbar">
@@ -26,6 +28,20 @@ const TopBar = ({ status, statusText, onReconnect, onClear }) => {
         </div>
       </div>
       <div className="topbar-actions">
+        <input
+          ref={fileInputRef}
+          type="file"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onUploadFile?.(f);
+            e.target.value = '';
+          }}
+        />
+        <button className="btn" type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadDisabled}>
+          <Upload size={16} />
+          上传
+        </button>
         <button className="btn" type="button" onClick={onClear}>
           <Trash2 size={16} />
           清空
@@ -40,4 +56,3 @@ const TopBar = ({ status, statusText, onReconnect, onClear }) => {
 };
 
 export default TopBar;
-

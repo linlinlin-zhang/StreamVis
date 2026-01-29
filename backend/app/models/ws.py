@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class ClientMessage(BaseModel):
-    type: Literal["user", "clear"] = "user"
+    type: Literal["user", "system", "clear"] = "user"
     content: Optional[str] = None
 
 
@@ -14,6 +14,7 @@ class TextDeltaEvent(BaseModel):
     type: Literal["text_delta"] = "text_delta"
     message_id: str
     content: str
+    delta: Optional[str] = None
     is_final: bool = True
     intent: Optional[Dict[str, Any]] = None
 
@@ -25,9 +26,20 @@ class GraphOp(BaseModel):
     target: Optional[str] = None
     label: Optional[str] = None
     value: Optional[float] = None
+    x: Optional[float] = None
+    y: Optional[float] = None
 
 
 class GraphDeltaEvent(BaseModel):
     type: Literal["graph_delta"] = "graph_delta"
     ops: List[GraphOp] = Field(default_factory=list)
 
+
+class ImageEvent(BaseModel):
+    type: Literal["image"] = "image"
+    request_id: str
+    status: Literal["disabled", "queued", "running", "succeeded", "failed"]
+    prompt: Optional[str] = None
+    task_id: Optional[str] = None
+    url: Optional[str] = None
+    message: Optional[str] = None

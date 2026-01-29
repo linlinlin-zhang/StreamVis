@@ -9,6 +9,8 @@ function App() {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [connectionError, setConnectionError] = useState('');
+  const [imageState, setImageState] = useState({ status: 'idle', url: '', message: '' });
+  const [uploadBusy, setUploadBusy] = useState(false);
   const wsRef = useRef(null);
   const reconnectTimerRef = useRef(null);
   const shouldReconnectRef = useRef(true);
@@ -31,10 +33,13 @@ function App() {
           setMessages((prev) => {
             const messageId = data.message_id || 'assistant';
             const existingIndex = prev.findIndex((m) => m.id === messageId);
+            const delta = data.delta ?? null;
+            const baseContent = existingIndex >= 0 ? prev[existingIndex].content : '';
+            const content = delta !== null ? `${baseContent}${delta}` : data.content ?? '';
             const nextMessage = {
               id: messageId,
               role: 'assistant',
-              content: data.content ?? data.delta ?? '',
+              content,
               isFinal: Boolean(data.is_final ?? true),
             };
 
@@ -63,15 +68,35 @@ function App() {
                 if (existing) nodeMap.set(op.id, { ...existing, ...op });
               } else if (op.op === 'remove_node') {
                 nodeMap.delete(op.id);
+                for (let i = links.length - 1; i >= 0; i--) {
+                  if (links[i].source === op.id || links[i].target === op.id) links.splice(i, 1);
+                }
               } else if (op.op === 'add_edge') {
                 links.push({ source: op.source, target: op.target, id: `${op.source}__${op.target}` });
+              } else if (op.op === 'remove_edge') {
+                for (let i = links.length - 1; i >= 0; i--) {
+                  if (links[i].source === op.source && links[i].target === op.target) links.splice(i, 1);
+                  if (links[i].source === op.target && links[i].target === op.source) links.splice(i, 1);
+                }
               } else if (op.op === 'clear') {
                 nodeMap.clear();
                 links.length = 0;
               }
             }
 
-            return { nodes: [...nodeMap.values()], links };
+            const nodeIds = new Set([...nodeMap.keys()]);
+            const filteredLinks = links.filter((l) => nodeIds.has(l.source) && nodeIds.has(l.target));
+            return { nodes: [...nodeMap.values()], links: filteredLinks };
+          });
+        }
+
+        if (data.type === 'image') {
+          setImageState({
+            status: data.status || 'unknown',
+            url: data.url || '',
+            message: data.message || '',
+            prompt: data.prompt || '',
+            requestId: data.request_id || '',
           });
         }
       };
@@ -101,7 +126,35 @@ function App() {
     if (!trimmed) return;
     setMessages((prev) => [...prev, { id: `user_${Date.now()}`, role: 'user', content: trimmed }]);
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ content: trimmed }));
+      wsRef.current.send(JSON.stringify({ type: 'user', content: trimmed }));
+    }
+  };
+
+  const sendSystemContext = (content) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'system', content }));
+    }
+  };
+
+  const handleUploadFile = async (file) => {
+    if (!file) return;
+    setUploadBusy(true);
+    setMessages((prev) => [...prev, { id: `sys_${Date.now()}`, role: 'system', content: `正在解析文件：${file.name}` }]);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const resp = await fetch('http://localhost:8000/api/kimi/files/extract', { method: 'POST', body: form });
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(data?.detail || '文件解析失败');
+      }
+      const content = data?.content || '';
+      sendSystemContext(content);
+      setMessages((prev) => [...prev, { id: `sys_${Date.now()}`, role: 'system', content: `已加载文件：${data?.filename || file.name}` }]);
+    } catch (e) {
+      setMessages((prev) => [...prev, { id: `sys_${Date.now()}`, role: 'system', content: `文件解析失败：${e?.message || '未知错误'}` }]);
+    } finally {
+      setUploadBusy(false);
     }
   };
 
@@ -130,10 +183,13 @@ function App() {
           setMessages((prev) => {
             const messageId = data.message_id || 'assistant';
             const existingIndex = prev.findIndex((m) => m.id === messageId);
+            const delta = data.delta ?? null;
+            const baseContent = existingIndex >= 0 ? prev[existingIndex].content : '';
+            const content = delta !== null ? `${baseContent}${delta}` : data.content ?? '';
             const nextMessage = {
               id: messageId,
               role: 'assistant',
-              content: data.content ?? data.delta ?? '',
+              content,
               isFinal: Boolean(data.is_final ?? true),
             };
             if (existingIndex >= 0) {
@@ -151,14 +207,37 @@ function App() {
             for (const op of ops) {
               if (op.op === 'add_node') {
                 if (!nodeMap.has(op.id)) nodeMap.set(op.id, { ...op });
+              } else if (op.op === 'update_node') {
+                const existing = nodeMap.get(op.id);
+                if (existing) nodeMap.set(op.id, { ...existing, ...op });
+              } else if (op.op === 'remove_node') {
+                nodeMap.delete(op.id);
+                for (let i = links.length - 1; i >= 0; i--) {
+                  if (links[i].source === op.id || links[i].target === op.id) links.splice(i, 1);
+                }
               } else if (op.op === 'add_edge') {
                 links.push({ source: op.source, target: op.target, id: `${op.source}__${op.target}` });
+              } else if (op.op === 'remove_edge') {
+                for (let i = links.length - 1; i >= 0; i--) {
+                  if (links[i].source === op.source && links[i].target === op.target) links.splice(i, 1);
+                  if (links[i].source === op.target && links[i].target === op.source) links.splice(i, 1);
+                }
               } else if (op.op === 'clear') {
                 nodeMap.clear();
                 links.length = 0;
               }
             }
-            return { nodes: [...nodeMap.values()], links };
+            const nodeIds = new Set([...nodeMap.keys()]);
+            const filteredLinks = links.filter((l) => nodeIds.has(l.source) && nodeIds.has(l.target));
+            return { nodes: [...nodeMap.values()], links: filteredLinks };
+          });
+        } else if (data.type === 'image') {
+          setImageState({
+            status: data.status || 'unknown',
+            url: data.url || '',
+            message: data.message || '',
+            prompt: data.prompt || '',
+            requestId: data.request_id || '',
           });
         }
       };
@@ -168,6 +247,7 @@ function App() {
   const handleClear = () => {
     setMessages([]);
     setGraphData({ nodes: [], links: [] });
+    setImageState({ status: 'idle', url: '', message: '' });
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'clear' }));
     }
@@ -189,10 +269,38 @@ function App() {
         statusText={statusText}
         onReconnect={handleReconnect}
         onClear={handleClear}
+        onUploadFile={handleUploadFile}
+        uploadDisabled={connectionStatus !== 'connected' || uploadBusy}
       />
       <div className="main">
         <div className="panel viz-panel">
           <StreamChart data={graphData} />
+          {imageState.status && imageState.status !== 'idle' ? (
+            <div className="image-overlay">
+              <div className="image-overlay-card">
+                <div className="image-overlay-top">
+                  <div className="image-overlay-title">AI 成图</div>
+                  <button className="image-overlay-close" type="button" onClick={() => setImageState({ status: 'idle', url: '', message: '' })}>
+                    关闭
+                  </button>
+                </div>
+                {imageState.status === 'queued' || imageState.status === 'running' ? (
+                  <div className="image-overlay-status">
+                    {imageState.status === 'queued' ? '排队中…' : '生成中…'}
+                  </div>
+                ) : null}
+                {imageState.status === 'failed' ? (
+                  <div className="image-overlay-error">{imageState.message || '生成失败'}</div>
+                ) : null}
+                {imageState.status === 'disabled' ? (
+                  <div className="image-overlay-error">{imageState.message || '图片服务未启用'}</div>
+                ) : null}
+                {imageState.status === 'succeeded' && imageState.url ? (
+                  <img className="image-overlay-img" src={imageState.url} alt="AI generated" />
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           {graphData.nodes.length === 0 ? (
             <div className="viz-empty">
               <div className="viz-empty-card">

@@ -168,6 +168,70 @@
   line-height: 1.55;
 }
 
+.image-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 12px;
+  pointer-events: none;
+}
+
+.image-overlay-card {
+  width: min(420px, 92%);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(5, 11, 16, 0.86);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.image-overlay-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.image-overlay-title {
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.image-overlay-close {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.image-overlay-status,
+.image-overlay-error {
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.image-overlay-error {
+  color: rgba(239, 68, 68, 0.9);
+}
+
+.image-overlay-img {
+  width: 100%;
+  display: block;
+  border-top: 1px solid var(--border);
+}
+
 .chat-panel {
   display: flex;
   flex-direction: column;
