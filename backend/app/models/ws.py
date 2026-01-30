@@ -35,6 +35,21 @@ class GraphDeltaEvent(BaseModel):
     ops: List[GraphOp] = Field(default_factory=list)
 
 
+class ChartPoint(BaseModel):
+    x: str
+    y: float
+
+
+class ChartDeltaEvent(BaseModel):
+    type: Literal["chart_delta"] = "chart_delta"
+    chart_type: Literal["line", "bar"] = "line"
+    title: str = ""
+    x_label: str = ""
+    y_label: str = ""
+    series_name: str = ""
+    points: List[ChartPoint] = Field(default_factory=list)
+
+
 class ImageEvent(BaseModel):
     type: Literal["image"] = "image"
     request_id: str
@@ -43,3 +58,11 @@ class ImageEvent(BaseModel):
     task_id: Optional[str] = None
     url: Optional[str] = None
     message: Optional[str] = None
+
+
+class TranscriptDeltaEvent(BaseModel):
+    type: Literal["transcript_delta"] = "transcript_delta"
+    segment_id: str
+    speaker: str
+    text: str
+    is_final: bool = False

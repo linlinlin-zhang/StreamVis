@@ -7,57 +7,75 @@
 ---
 
 **Project:** StreamVis
-**Generated:** 2026-01-29 16:02:38
-**Category:** Financial Dashboard
+**Generated:** 2026-01-30
+**Category:** AI Data Visualization Dashboard
 
 ---
 
 ## Global Rules
 
-### Color Palette
+### Color Palette - Light Theme
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#0F766E` | `--color-primary` |
-| Secondary | `#14B8A6` | `--color-secondary` |
-| CTA/Accent | `#0369A1` | `--color-cta` |
-| Background | `#F0FDFA` | `--color-background` |
-| Text | `#134E4A` | `--color-text` |
+| Primary | `#0d9488` | `--color-primary` |
+| Primary Light | `#14b8a6` | `--color-primary-light` |
+| Primary Dark | `#0f766e` | `--color-primary-dark` |
+| Accent | `#0284c7` | `--color-accent` |
+| Background | `#fafaf9` | `--color-background` |
+| Panel | `#ffffff` | `--color-panel` |
+| Text | `#1c1917` | `--color-text` |
+| Text Secondary | `#57534e` | `--color-text-secondary` |
+| Text Muted | `#a8a29e` | `--color-text-muted` |
+| Border | `#e7e5e4` | `--color-border` |
 
-**Color Notes:** Trust teal + professional blue
+**Color Philosophy:** 
+- 清新明亮的青绿色作为主色调，传达专业与可信赖感
+- 温暖的灰白色背景，长时间使用不易疲劳
+- 深灰色文字确保最佳可读性
 
 ### Typography
 
-- **Heading Font:** Fira Code
-- **Body Font:** Fira Sans
-- **Mood:** dashboard, data, analytics, code, technical, precise
-- **Google Fonts:** [Fira Code + Fira Sans](https://fonts.google.com/share?selection.family=Fira+Code:wght@400;500;600;700|Fira+Sans:wght@300;400;500;600;700)
+- **Heading Font:** JetBrains Mono (monospace)
+- **Body Font:** Inter (sans-serif)
+- **Mood:** Modern, clean, technical, professional
+- **Google Fonts:** [Inter + JetBrains Mono](https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap)
 
 **CSS Import:**
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 ```
 
 ### Spacing Variables
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--space-xs` | `4px` / `0.25rem` | Tight gaps |
-| `--space-sm` | `8px` / `0.5rem` | Icon gaps, inline spacing |
-| `--space-md` | `16px` / `1rem` | Standard padding |
-| `--space-lg` | `24px` / `1.5rem` | Section padding |
-| `--space-xl` | `32px` / `2rem` | Large gaps |
-| `--space-2xl` | `48px` / `3rem` | Section margins |
-| `--space-3xl` | `64px` / `4rem` | Hero padding |
+| `--space-xs` | `4px` | Tight gaps |
+| `--space-sm` | `8px` | Icon gaps |
+| `--space-md` | `12px` | Standard padding |
+| `--space-lg` | `16px` | Section padding |
+| `--space-xl` | `24px` | Large gaps |
+| `--space-2xl` | `32px` | Section margins |
 
 ### Shadow Depths
 
 | Level | Value | Usage |
 |-------|-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | Subtle lift |
-| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.1)` | Cards, buttons |
-| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)` | Modals, dropdowns |
-| `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.15)` | Hero images, featured cards |
+| `--shadow-xs` | `0 1px 2px rgba(0,0,0,0.02)` | Subtle lift |
+| `--shadow-sm` | `0 1px 3px rgba(0,0,0,0.04)` | Cards, buttons |
+| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.04)` | Elevated cards |
+| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.04)` | Modals, dropdowns |
+| `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.04)` | Overlays |
+
+### Border Radius
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--radius-sm` | `6px` | Small elements |
+| `--radius-md` | `10px` | Buttons, inputs |
+| `--radius-lg` | `14px` | Cards, panels |
+| `--radius-xl` | `18px` | Modals |
+| `--radius-full` | `9999px` | Pills, avatars |
 
 ---
 
@@ -68,48 +86,51 @@
 ```css
 /* Primary Button */
 .btn-primary {
-  background: #0369A1;
+  background: #0d9488;
   color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 200ms ease;
-  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 13px;
+  border: 1px solid #0d9488;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: all 150ms ease;
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
+  background: #0f766e;
+  border-color: #0f766e;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.04);
 }
 
 /* Secondary Button */
 .btn-secondary {
-  background: transparent;
-  color: #0F766E;
-  border: 2px solid #0F766E;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 200ms ease;
-  cursor: pointer;
+  background: #ffffff;
+  color: #57534e;
+  border: 1px solid #e7e5e4;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 13px;
+  transition: all 150ms ease;
+}
+
+.btn-secondary:hover {
+  background: #f5f5f4;
+  border-color: #a8a29e;
+  color: #1c1917;
 }
 ```
 
-### Cards
+### Cards / Panels
 
 ```css
-.card {
-  background: #F0FDFA;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: var(--shadow-md);
-  transition: all 200ms ease;
-  cursor: pointer;
-}
-
-.card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+.panel {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e7e5e4;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  overflow: hidden;
 }
 ```
 
@@ -117,17 +138,59 @@
 
 ```css
 .input {
-  padding: 12px 16px;
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 200ms ease;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #e7e5e4;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #ffffff;
+  color: #1c1917;
+  transition: all 150ms ease;
+}
+
+.input:hover {
+  border-color: #a8a29e;
 }
 
 .input:focus {
-  border-color: #0F766E;
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.08);
   outline: none;
-  box-shadow: 0 0 0 3px #0F766E20;
+}
+```
+
+### Message Bubbles
+
+```css
+/* User Message */
+.message-user {
+  background: #0d9488;
+  color: white;
+  border-radius: 14px;
+  border-bottom-right-radius: 6px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+/* Assistant Message */
+.message-assistant {
+  background: #f5f5f4;
+  color: #1c1917;
+  border: 1px solid #e7e5e4;
+  border-radius: 14px;
+  border-bottom-left-radius: 6px;
+  padding: 12px 16px;
+}
+
+/* System Message */
+.message-system {
+  background: rgba(2, 132, 199, 0.08);
+  border: 1px solid rgba(2, 132, 199, 0.15);
+  color: #0284c7;
+  border-radius: 9999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
 }
 ```
 
@@ -135,17 +198,83 @@
 
 ```css
 .modal-overlay {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(4px);
 }
 
 .modal {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: var(--shadow-xl);
-  max-width: 500px;
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #e7e5e4;
+  padding: 0;
+  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.08);
+  max-width: 520px;
   width: 90%;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e7e5e4;
+}
+
+.modal-body {
+  padding: 20px;
+}
+```
+
+### Charts
+
+```css
+/* Graph Nodes */
+.node-circle {
+  fill: #0d9488;
+  stroke: #ffffff;
+  stroke-width: 2;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1));
+}
+
+.node-text {
+  fill: #57534e;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.link-line {
+  stroke: #d6d3d1;
+  stroke-width: 2;
+}
+
+/* Plot Chart */
+.plot-line {
+  stroke: #0d9488;
+  stroke-width: 2.5;
+  fill: none;
+}
+
+.plot-area {
+  fill: rgba(13, 148, 136, 0.1);
+}
+
+.plot-dot {
+  fill: #0d9488;
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+.plot-bar {
+  fill: #0d9488;
+  rx: 4;
+}
+
+.axis-text {
+  fill: #57534e;
+  font-size: 12px;
+}
+
+.grid-line {
+  stroke: #e7e5e4;
+  stroke-dasharray: 3,3;
 }
 ```
 
@@ -153,37 +282,33 @@
 
 ## Style Guidelines
 
-**Style:** Dark Mode (OLED)
+**Style:** Light Mode (Modern Clean)
 
-**Keywords:** Dark theme, low light, high contrast, deep black, midnight blue, eye-friendly, OLED, night mode, power efficient
+**Keywords:** Light theme, clean, minimal, professional, friendly, approachable, modern, spacious
 
-**Best For:** Night-mode apps, coding platforms, entertainment, eye-strain prevention, OLED devices, low-light
+**Best For:** Daytime use, professional applications, data visualization, collaborative tools
 
-**Key Effects:** Minimal glow (text-shadow: 0 0 10px), dark-to-light transitions, low white emission, high readability, visible focus
-
-### Page Pattern
-
-**Pattern Name:** Scroll-Triggered Storytelling
-
-- **Conversion Strategy:** Narrative increases time-on-page 3x. Use progress indicator. Mobile: simplify animations.
-- **CTA Placement:** End of each chapter (mini) + Final climax CTA
-- **Section Order:** 1. Intro hook, 2. Chapter 1 (problem), 3. Chapter 2 (journey), 4. Chapter 3 (solution), 5. Climax CTA
+**Key Effects:** 
+- Subtle shadows for depth
+- Rounded corners for friendliness
+- Clear visual hierarchy
+- Generous whitespace
+- Smooth transitions (150ms)
 
 ---
 
 ## Anti-Patterns (Do NOT Use)
 
-- ❌ Light mode default
-- ❌ Slow rendering
-
-### Additional Forbidden Patterns
-
-- ❌ **Emojis as icons** — Use SVG icons (Heroicons, Lucide, Simple Icons)
-- ❌ **Missing cursor:pointer** — All clickable elements must have cursor:pointer
-- ❌ **Layout-shifting hovers** — Avoid scale transforms that shift layout
-- ❌ **Low contrast text** — Maintain 4.5:1 minimum contrast ratio
-- ❌ **Instant state changes** — Always use transitions (150-300ms)
-- ❌ **Invisible focus states** — Focus states must be visible for a11y
+- ❌ Dark mode default
+- ❌ Pure white background (use warm off-white #fafaf9)
+- ❌ Pure black text (use warm dark #1c1917)
+- ❌ Harsh shadows (use subtle, diffused shadows)
+- ❌ Sharp corners on interactive elements
+- ❌ Instant state changes (always use 150ms transitions)
+- ❌ Missing focus states
+- ❌ Emojis as icons — Use Lucide icons
+- ❌ Missing cursor:pointer — All clickable elements must have cursor:pointer
+- ❌ Low contrast text — Maintain 4.5:1 minimum contrast ratio
 
 ---
 
@@ -191,10 +316,10 @@
 
 Before delivering any UI code, verify:
 
-- [ ] No emojis used as icons (use SVG instead)
-- [ ] All icons from consistent icon set (Heroicons/Lucide)
+- [ ] No emojis used as icons (use Lucide instead)
+- [ ] All icons from consistent icon set (Lucide)
 - [ ] `cursor-pointer` on all clickable elements
-- [ ] Hover states with smooth transitions (150-300ms)
+- [ ] Hover states with smooth transitions (150ms)
 - [ ] Light mode: text contrast 4.5:1 minimum
 - [ ] Focus states visible for keyboard navigation
 - [ ] `prefers-reduced-motion` respected

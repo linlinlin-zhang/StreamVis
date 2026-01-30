@@ -102,3 +102,11 @@ def parse_tool_calls_from_chat_response(resp: Dict[str, Any]) -> Tuple[str, List
             calls.append(ToolCall(id=tc_id, name=name, arguments=args))
     return str(content), calls
 
+
+def get_raw_tool_calls(resp: Dict[str, Any]) -> List[Dict[str, Any]]:
+    choices = resp.get("choices") or []
+    if not choices:
+        return []
+    msg = (choices[0] or {}).get("message") or {}
+    raw_tool_calls = msg.get("tool_calls") or []
+    return raw_tool_calls if isinstance(raw_tool_calls, list) else []

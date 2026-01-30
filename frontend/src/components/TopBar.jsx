@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
-import { RefreshCw, Trash2, Upload } from 'lucide-react';
+import { Mic, RefreshCw, Trash2, Upload, UserRound } from 'lucide-react';
 
-const TopBar = ({ status, statusText, onReconnect, onClear, onUploadFile, uploadDisabled }) => {
+const TopBar = ({ status, statusText, onReconnect, onClear, onUploadFile, uploadDisabled, onToggleVoice, voiceActive, voiceDisabled, onOpenVoicePrint }) => {
   const dotClass =
     status === 'connected'
       ? 'connected'
@@ -41,6 +41,14 @@ const TopBar = ({ status, statusText, onReconnect, onClear, onUploadFile, upload
         <button className="btn" type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadDisabled}>
           <Upload size={16} />
           上传
+        </button>
+        <button className={`btn ${voiceActive ? 'primary' : ''}`} type="button" onClick={onToggleVoice} disabled={voiceDisabled}>
+          <Mic size={16} />
+          语音
+        </button>
+        <button className="btn" type="button" onClick={onOpenVoicePrint} disabled={voiceDisabled}>
+          <UserRound size={16} />
+          声纹
         </button>
         <button className="btn" type="button" onClick={onClear}>
           <Trash2 size={16} />

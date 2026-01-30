@@ -43,6 +43,9 @@ StreamVis 是一个“对话流驱动的增量可视化（Graph Delta）MVP”�
 - Kimi Files（Moonshot 文件抽取）：
   - `POST /api/kimi/files/extract`：上传文件→抽取内容→返回抽取结果（并删除远端文件）
   - 抽取结果由前端通过 WS 发送 `type=system` 注入上下文
+- 讯飞实时语音转写（RTASR LLM，可选）：
+  - `ws://localhost:8000/ws/asr`：前端上传麦克风 PCM 流，后端代理连接讯飞 RTASR，实时推送 `transcript_delta`（含说话人分离）
+  - 声纹分离（可选增强）：提供 `/api/xfyun/voiceprint/*` 注册/更新/删除接口，用注册得到的 `feature_id` 提升分离稳定性
 
 关键实现：
 - WebSocket 入口与事件编排：[main.py](file:///e:/Desktop/StreamVis/backend/app/main.py)
@@ -100,8 +103,13 @@ StreamVis 是一个“对话流驱动的增量可视化（Graph Delta）MVP”�
 实现：[context_manager.py](file:///e:/Desktop/StreamVis/backend/app/core/context_manager.py)
 
 - L1：最近对话（deque）+ sink（固定保留头部若干轮）
-- L2：淘汰到长期记忆（分段后写入向量库的 in-memory stub）
+- L2：淘汰到长期记忆（分段后写入向量库；默认使用 SQLite 持久化）
 - system：专门存放 system 注入（文件抽取内容等），最多保留 8 条
+
+向量库与检索策略：
+- 向量库：HashingEmbedder + SQLite（可关闭持久化回退为内存）
+- 检索：相似度召回 + MMR 多样性重排（降低重复片段、提升覆盖面）
+- 文件索引：支持把文件抽取文本分段入库，后续通过检索按需引用
 
 ### 4.3 Prompt 预算（token 估算 + 动态裁剪/检索）
 
@@ -141,12 +149,17 @@ StreamVis 是一个“对话流驱动的增量可视化（Graph Delta）MVP”�
 
 当使用 Kimi 且关闭 tools（走 SSE 文本流）时：
 
-- 进入文本流循环后，累计输出字符 `acc_chars`
-- 达到 `STREAMVIS_WAITK_CHARS` 或遇到句末/换行边界，即提前推送一次 `graph_delta`
-- 同一条消息只触发一次，避免后续重复出图
+- 进入文本流循环后，通过 Wait-k 策略机持续观察增量 `delta`
+- 满足“累计输出达到 step_chars 或句末/换行边界”且满足最小间隔后，触发一次可视化更新（多阶段）
+- 每条消息最多触发 N 次（节流上限），避免过度刷屏与前端抖动
+- 触发时会尝试基于 `user_input + assistant_text` 的合并文本更新：
+  - `chart_delta`（若可解析出更多数据点/更完整 spec）
+  - `graph_delta`（语义图谱可随生成过程逐步补齐）
 
 配置项：
 - `STREAMVIS_WAITK_CHARS`（默认 120）
+- `STREAMVIS_WAITK_MIN_INTERVAL_MS`（默认 700）
+- `STREAMVIS_WAITK_MAX_UPDATES`（默认 4）
 
 ### 4.6 图状态预算与淘汰（Graph Budget）
 
@@ -248,4 +261,3 @@ npm run dev
 - 工具执行结果回灌为 tool message，形成多轮工具链
 
 落点：[kimi_tools.py](file:///e:/Desktop/StreamVis/backend/app/core/kimi_tools.py)、[main.py](file:///e:/Desktop/StreamVis/backend/app/main.py)
-

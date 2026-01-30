@@ -1,32 +1,78 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --bg: #050b10;
-  --panel: #0b1320;
-  --panel-2: #0f1b2c;
-  --border: rgba(255, 255, 255, 0.08);
-  --text: rgba(255, 255, 255, 0.92);
-  --muted: rgba(255, 255, 255, 0.66);
-  --muted-2: rgba(255, 255, 255, 0.48);
-
-  --primary: #14b8a6;
-  --primary-2: #0f766e;
-  --cta: #0369a1;
-
-  --danger: #ef4444;
-  --success: #22c55e;
+  /* 主色调 - 清新的青绿色系 */
+  --primary: #0d9488;
+  --primary-light: #14b8a6;
+  --primary-dark: #0f766e;
+  --primary-subtle: rgba(13, 148, 136, 0.08);
+  --primary-hover: rgba(13, 148, 136, 0.12);
+  
+  /* 强调色 - 专业蓝色 */
+  --accent: #0284c7;
+  --accent-light: #38bdf8;
+  --accent-subtle: rgba(2, 132, 199, 0.08);
+  
+  /* 背景色 - 温暖明亮的白色系 */
+  --bg: #fafaf9;
+  --bg-elevated: #ffffff;
+  --bg-subtle: #f5f5f4;
+  --bg-hover: #e7e5e4;
+  
+  /* 面板色 */
+  --panel: #ffffff;
+  --panel-border: #e7e5e4;
+  
+  /* 文字色 */
+  --text: #1c1917;
+  --text-secondary: #57534e;
+  --text-tertiary: #78716c;
+  --text-muted: #a8a29e;
+  
+  /* 边框 */
+  --border: #e7e5e4;
+  --border-light: #f5f5f4;
+  --border-focus: #0d9488;
+  
+  /* 功能色 */
+  --success: #10b981;
+  --success-subtle: rgba(16, 185, 129, 0.08);
   --warning: #f59e0b;
+  --warning-subtle: rgba(245, 158, 11, 0.08);
+  --danger: #ef4444;
+  --danger-subtle: rgba(239, 68, 68, 0.08);
+  
+  /* 阴影 - 柔和的层次感 */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.04), 0 10px 10px -5px rgba(0, 0, 0, 0.01);
+  
+  /* 发光效果 */
+  --glow-primary: 0 0 20px rgba(13, 148, 136, 0.15);
+  --glow-accent: 0 0 20px rgba(2, 132, 199, 0.15);
+  
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+  
+  /* 间距 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
 
-  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.55);
-  --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.45);
-  --glow: 0 0 18px rgba(20, 184, 166, 0.28);
-
-  font-family: "Fira Sans", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.45;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
   font-weight: 400;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -46,10 +92,23 @@ body,
 body {
   margin: 0;
   min-width: 320px;
-  background: radial-gradient(1200px 800px at 10% 10%, rgba(20, 184, 166, 0.14), transparent 45%),
-    radial-gradient(900px 600px at 85% 15%, rgba(3, 105, 161, 0.16), transparent 50%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
+}
+
+/* 微妙的几何背景图案 */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse 80% 50% at 20% 40%, rgba(13, 148, 136, 0.04), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 60%, rgba(2, 132, 199, 0.04), transparent);
+  pointer-events: none;
+  z-index: -1;
 }
 
 a {
@@ -58,7 +117,7 @@ a {
 }
 
 a:hover {
-  color: rgba(20, 184, 166, 0.86);
+  color: var(--primary-dark);
 }
 
 button,
@@ -67,6 +126,26 @@ input {
 }
 
 :focus-visible {
-  outline: 2px solid rgba(20, 184, 166, 0.75);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-subtle);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
 }

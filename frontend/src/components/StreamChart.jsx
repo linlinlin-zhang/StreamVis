@@ -9,16 +9,31 @@ const StreamChart = ({ data }) => {
   const nodesGRef = useRef(null);
   const dims = useMemo(() => ({ width: 1000, height: 700 }), []);
 
+  // 明亮主题配色
+  const colors = {
+    node: '#0d9488',
+    nodeStroke: '#ffffff',
+    nodeGlow: 'rgba(13, 148, 136, 0.3)',
+    link: '#d6d3d1',
+    text: '#57534e',
+    textBg: 'rgba(255, 255, 255, 0.9)',
+  };
+
   useEffect(() => {
     const svg = d3.select(svgRef.current);
     svg.attr('viewBox', `0 0 ${dims.width} ${dims.height}`);
 
+    // 添加发光滤镜
     const defs = svg.append('defs');
     const glow = defs.append('filter').attr('id', 'sv-glow');
-    glow.append('feGaussianBlur').attr('stdDeviation', '4').attr('result', 'coloredBlur');
+    glow.append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'coloredBlur');
     const feMerge = glow.append('feMerge');
     feMerge.append('feMergeNode').attr('in', 'coloredBlur');
     feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+    // 添加阴影滤镜
+    const shadow = defs.append('filter').attr('id', 'sv-shadow');
+    shadow.append('feDropShadow').attr('dx', 0).attr('dy', 2).attr('stdDeviation', 3).attr('flood-opacity', 0.1);
 
     const rootG = svg.append('g').attr('class', 'sv-root');
     const linksG = rootG.append('g').attr('class', 'sv-links');
@@ -78,8 +93,8 @@ const StreamChart = ({ data }) => {
         (enter) =>
           enter
             .append('line')
-            .attr('stroke', 'rgba(255, 255, 255, 0.22)')
-            .attr('stroke-width', 1.5),
+            .attr('stroke', colors.link)
+            .attr('stroke-width', 2),
         (update) => update,
         (exit) => exit.remove(),
       );
@@ -91,17 +106,19 @@ const StreamChart = ({ data }) => {
         (enter) => {
           const g = enter.append('g').attr('class', 'sv-node').attr('cursor', 'grab');
           g.append('circle')
-            .attr('r', 10)
-            .attr('fill', 'rgba(20, 184, 166, 0.85)')
-            .attr('stroke', 'rgba(255, 255, 255, 0.28)')
-            .attr('stroke-width', 1.25)
-            .attr('filter', 'url(#sv-glow)');
+            .attr('r', 12)
+            .attr('fill', colors.node)
+            .attr('stroke', colors.nodeStroke)
+            .attr('stroke-width', 2)
+            .attr('filter', 'url(#sv-shadow)');
           g.append('text')
-            .attr('x', 14)
+            .attr('x', 18)
             .attr('y', 4)
             .attr('font-size', 12)
-            .attr('fill', 'rgba(255, 255, 255, 0.78)')
-            .attr('font-family', '"Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace');
+            .attr('fill', colors.text)
+            .attr('font-weight', 500)
+            .attr('font-family', '"Inter", system-ui, sans-serif')
+            .style('text-shadow', `0 1px 2px ${colors.textBg}`);
           return g;
         },
         (update) => update,

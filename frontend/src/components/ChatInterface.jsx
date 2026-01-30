@@ -26,6 +26,7 @@ const ChatInterface = ({ messages, onSendMessage, disabled }) => {
       <div className="messages-list">
         {messages.map((msg, idx) => (
           <div key={idx} className={`message ${msg.role}`}>
+            {msg.speaker ? <div className="message-speaker">{msg.speaker}</div> : null}
             <div className="message-content">{msg.content}</div>
           </div>
         ))}

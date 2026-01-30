@@ -15,27 +15,34 @@ class ContextManager:
         l1_max_turns: int = 14,
         sink_turns: int = 2,
         retrieval_k: int = 4,
+        mmr_lambda: float = 0.65,
+        mmr_pool_mult: int = 4,
         segmenter: Optional[StreamingSegmenter] = None,
-        store: Optional[InMemoryVectorStore] = None,
+        store: Optional[Any] = None,
     ) -> None:
         self._l1_max_turns = max(2, int(l1_max_turns))
         self._sink_turns = max(0, int(sink_turns))
         self._retrieval_k = max(0, int(retrieval_k))
+        self._mmr_lambda = float(mmr_lambda)
+        self._mmr_pool_mult = max(1, int(mmr_pool_mult))
 
         self._sink: List[Dict[str, Any]] = []
         self._system: List[Dict[str, Any]] = []
         self._recent: Deque[Dict[str, Any]] = deque()
         self._segmenter = segmenter or StreamingSegmenter()
         self._store = store or InMemoryVectorStore()
+        self._owns_store = store is None
         self._entity_index: Dict[str, List[str]] = {}
+        self._warm_entity_index()
 
-    def clear(self) -> None:
+    def clear(self, *, preserve_long_term: bool = True) -> None:
         self._sink.clear()
         self._system.clear()
         self._recent.clear()
         self._segmenter.flush()
-        self._store = InMemoryVectorStore()
-        self._entity_index.clear()
+        if not preserve_long_term and self._owns_store:
+            self._store = InMemoryVectorStore()
+            self._entity_index.clear()
 
     def add_user_input(self, text: str) -> None:
         self._append({"role": "user", "content": text})
@@ -89,22 +96,33 @@ class ContextManager:
         if k <= 0:
             return []
         hits: List[MemoryChunk] = []
+        pool = max(k * self._mmr_pool_mult, k)
 
         ents = extract_entities(query)
         if ents:
             seen = set()
             for e in ents:
                 for cid in self._entity_index.get(e, [])[:k]:
-                    for ch in self._store.search(query, k=k):
+                    for ch in self._store.search(query, k=pool, mmr_lambda=self._mmr_lambda, candidate_pool=pool):
                         if ch.id == cid and ch.id not in seen:
                             hits.append(ch)
                             seen.add(ch.id)
 
-        for ch in self._store.search(query, k=k):
+        for ch in self._store.search(query, k=k, mmr_lambda=self._mmr_lambda, candidate_pool=pool):
             if ch not in hits:
                 hits.append(ch)
 
         return hits[:k]
+
+    def _warm_entity_index(self, *, max_chunks: int = 1200) -> None:
+        try:
+            chunks = list(self._store.iter_chunks())
+        except Exception:
+            return
+        for ch in chunks[: max(0, int(max_chunks))]:
+            meta = ch.meta or {}
+            for e in meta.get("entities", []) or []:
+                self._entity_index.setdefault(str(e), []).append(ch.id)
 
     def _append(self, msg: Dict[str, Any]) -> None:
         if len(self._sink) < self._sink_turns:

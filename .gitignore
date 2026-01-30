@@ -4,6 +4,10 @@ __pycache__/
 
 .env
 backend/.env
+backend/data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 
 node_modules/
 frontend/node_modules/
@@ -12,4 +16,3 @@ frontend/dist/
 
 .DS_Store
 Thumbs.db
-

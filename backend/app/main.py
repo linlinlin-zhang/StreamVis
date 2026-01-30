@@ -2,6 +2,8 @@ import json
 import logging
 import asyncio
 import uuid
+import time
+import os
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,17 +12,32 @@ import uvicorn
 from app.core.bailian_images import BailianError, BailianImagesClient
 from app.core.config import get_settings
 from app.core.context_manager import ContextManager
+from app.core.chart_parser import parse_chart_spec
+from app.core.context_summary import summarize_system_context
+from app.core.file_indexer import index_text
 from app.core.intent_decoder import IntentDecoder
 from app.core.kimi_client import KimiClient, KimiError
-from app.core.kimi_tools import build_streamvis_tools, parse_tool_calls_from_chat_response
+from app.core.kimi_tools import build_streamvis_tools, get_raw_tool_calls, parse_tool_calls_from_chat_response
 from app.core.moonshot_files import MoonshotError, MoonshotFilesClient
 from app.core.renderer import IncrementalRenderer
-from app.models.ws import ClientMessage, GraphDeltaEvent, ImageEvent, TextDeltaEvent
+from app.core.vector_store import PersistentVectorStore
+from app.core.waitk_policy import WaitKPolicy
+from app.core.xfyun_rtasr import stream_rtasr
+from app.core.xfyun_voiceprint import delete_voiceprint, register_voiceprint, update_voiceprint
+from app.models.ws import ChartDeltaEvent, ClientMessage, GraphDeltaEvent, ImageEvent, TextDeltaEvent, TranscriptDeltaEvent
 
 app = FastAPI(title="StreamVis API")
 
 settings = get_settings()
 logger = logging.getLogger("streamvis")
+
+_backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_memory_store: PersistentVectorStore | None = None
+if settings.enable_persistent_memory:
+    db_path = settings.memory_db_path
+    if not os.path.isabs(db_path):
+        db_path = os.path.join(_backend_dir, db_path)
+    _memory_store = PersistentVectorStore(db_path=db_path)
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,6 +72,132 @@ async def kimi_extract_file(file: UploadFile = File(...)):
     except MoonshotError as e:
         raise HTTPException(status_code=502, detail=str(e))
 
+
+@app.post("/api/kimi/files/index")
+async def kimi_index_file(file: UploadFile = File(...)):
+    if not settings.enable_kimi or not settings.moonshot_api_key:
+        raise HTTPException(status_code=400, detail="Kimi 未启用或未配置 MOONSHOT_API_KEY")
+    if not _memory_store:
+        raise HTTPException(status_code=400, detail="未启用持久化记忆库")
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="空文件")
+    client = MoonshotFilesClient(api_key=settings.moonshot_api_key, base_url=settings.moonshot_base_url)
+    try:
+        uploaded = await asyncio.to_thread(client.upload, file_bytes=raw, filename=file.filename or "upload.bin", purpose="file-extract")
+        content = await asyncio.to_thread(client.retrieve_content, file_id=uploaded.id)
+        await asyncio.to_thread(client.delete, file_id=uploaded.id)
+
+        count, ids = await asyncio.to_thread(
+            index_text,
+            store=_memory_store,
+            text=content,
+            meta={"source": "file", "filename": uploaded.filename, "file_id": uploaded.id, "kind": "file"},
+        )
+
+        system_ctx = f"[File:{uploaded.filename}#{uploaded.id}] 已索引 {count} 段，可在提问时按需检索引用。"
+        if settings.enable_context_summary and content and len(content) > settings.system_context_max_chars:
+            summary = await asyncio.to_thread(
+                summarize_system_context,
+                None,
+                content,
+                target_chars=settings.system_context_summary_chars,
+            )
+            if summary:
+                system_ctx = system_ctx + "\n摘要：" + summary
+
+        return {
+            "file_id": uploaded.id,
+            "filename": uploaded.filename,
+            "chunks_indexed": count,
+            "chunk_ids": ids[:50],
+            "system_context": system_ctx,
+        }
+    except MoonshotError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@app.get("/api/memory/search")
+async def memory_search(q: str, k: int = 6):
+    if not _memory_store:
+        raise HTTPException(status_code=400, detail="未启用持久化记忆库")
+    kk = max(1, min(20, int(k)))
+    hits = await asyncio.to_thread(_memory_store.search, q, kk, None, mmr_lambda=settings.mmr_lambda, candidate_pool=kk * settings.mmr_pool_mult)
+    out = []
+    for h in hits:
+        out.append({"id": h.id, "text": h.text[:220], "meta": h.meta})
+    return {"hits": out}
+
+
+@app.post("/api/xfyun/voiceprint/register")
+async def xfyun_voiceprint_register(file: UploadFile = File(...), uid: str = ""):
+    if not settings.xfyun_enable:
+        raise HTTPException(status_code=400, detail="未启用讯飞 ASR：请设置 STREAMVIS_ENABLE_XFYUN_ASR=1")
+    if not (settings.xfyun_app_id and settings.xfyun_access_key_id and settings.xfyun_access_key_secret):
+        raise HTTPException(status_code=400, detail="缺少讯飞鉴权配置")
+    if not settings.xfyun_voiceprint_register_url:
+        raise HTTPException(status_code=400, detail="未配置 XFYUN_VOICEPRINT_REGISTER_URL（从 voice_print 文档复制请求地址）")
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="空音频")
+    res = await asyncio.to_thread(
+        register_voiceprint,
+        register_url=settings.xfyun_voiceprint_register_url,
+        app_id=settings.xfyun_app_id,
+        access_key_id=settings.xfyun_access_key_id,
+        access_key_secret=settings.xfyun_access_key_secret,
+        audio_bytes=raw,
+        audio_type="raw",
+        uid=uid,
+    )
+    return {"code": res.code, "desc": res.desc, "feature_id": res.feature_id, "raw": res.raw}
+
+
+@app.post("/api/xfyun/voiceprint/update")
+async def xfyun_voiceprint_update(feature_id: str, file: UploadFile = File(...)):
+    if not settings.xfyun_enable:
+        raise HTTPException(status_code=400, detail="未启用讯飞 ASR：请设置 STREAMVIS_ENABLE_XFYUN_ASR=1")
+    if not (settings.xfyun_app_id and settings.xfyun_access_key_id and settings.xfyun_access_key_secret):
+        raise HTTPException(status_code=400, detail="缺少讯飞鉴权配置")
+    if not settings.xfyun_voiceprint_update_url:
+        raise HTTPException(status_code=400, detail="未配置 XFYUN_VOICEPRINT_UPDATE_URL（从 voice_print 文档复制请求地址）")
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="空音频")
+    resp = await asyncio.to_thread(
+        update_voiceprint,
+        update_url=settings.xfyun_voiceprint_update_url,
+        app_id=settings.xfyun_app_id,
+        access_key_id=settings.xfyun_access_key_id,
+        access_key_secret=settings.xfyun_access_key_secret,
+        feature_id=feature_id,
+        audio_bytes=raw,
+        audio_type="raw",
+    )
+    return resp
+
+
+@app.post("/api/xfyun/voiceprint/delete")
+async def xfyun_voiceprint_delete(feature_ids: str):
+    if not settings.xfyun_enable:
+        raise HTTPException(status_code=400, detail="未启用讯飞 ASR：请设置 STREAMVIS_ENABLE_XFYUN_ASR=1")
+    if not (settings.xfyun_app_id and settings.xfyun_access_key_id and settings.xfyun_access_key_secret):
+        raise HTTPException(status_code=400, detail="缺少讯飞鉴权配置")
+    if not settings.xfyun_voiceprint_delete_url:
+        raise HTTPException(status_code=400, detail="未配置 XFYUN_VOICEPRINT_DELETE_URL（从 voice_print 文档复制请求地址）")
+    ids = [s.strip() for s in str(feature_ids).split(",") if s.strip()]
+    if not ids:
+        raise HTTPException(status_code=400, detail="feature_ids 为空")
+    resp = await asyncio.to_thread(
+        delete_voiceprint,
+        delete_url=settings.xfyun_voiceprint_delete_url,
+        app_id=settings.xfyun_app_id,
+        access_key_id=settings.xfyun_access_key_id,
+        access_key_secret=settings.xfyun_access_key_secret,
+        feature_ids=ids,
+    )
+    return resp
+
 @app.websocket("/ws/chat")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -63,6 +206,9 @@ async def websocket_endpoint(websocket: WebSocket):
         l1_max_turns=settings.l1_max_turns,
         sink_turns=settings.sink_turns,
         retrieval_k=settings.retrieval_k,
+        mmr_lambda=settings.mmr_lambda,
+        mmr_pool_mult=settings.mmr_pool_mult,
+        store=_memory_store,
     )
     intent_decoder = IntentDecoder()
     renderer = IncrementalRenderer(max_nodes=settings.graph_max_nodes, max_edges=settings.graph_max_edges)
@@ -111,12 +257,22 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
 
             if msg.type == "clear":
-                context_manager.clear()
+                context_manager.clear(preserve_long_term=bool(_memory_store))
                 ops = renderer.clear()
                 await websocket.send_text(GraphDeltaEvent(ops=ops).model_dump_json())
                 continue
             if msg.type == "system":
-                context_manager.add_system_context(msg.content or "")
+                raw_ctx = msg.content or ""
+                if settings.enable_context_summary and raw_ctx and len(raw_ctx) > settings.system_context_max_chars:
+                    summary = await asyncio.to_thread(
+                        summarize_system_context,
+                        kimi_client,
+                        raw_ctx,
+                        target_chars=settings.system_context_summary_chars,
+                    )
+                    context_manager.add_system_context(summary)
+                else:
+                    context_manager.add_system_context(raw_ctx)
                 continue
 
             user_input = (msg.content or "").strip()
@@ -143,6 +299,19 @@ async def websocket_endpoint(websocket: WebSocket):
                         intent=intent,
                     ).model_dump_json()
                 )
+                if float(intent.get("visual_necessity_score", 0.0)) >= settings.visual_threshold:
+                    spec = parse_chart_spec(user_input)
+                    if not spec or not spec.points:
+                        hint_id = f"a_{session_id}_{uuid.uuid4().hex[:8]}"
+                        hint = "为了生成趋势图，请补充可解析的数据序列，例如：Q1 X=120，Q2 X=130，Q3 X=90；或 1月 100，2月 120，3月 90。"
+                        context_manager.add_assistant_output(hint)
+                        await websocket.send_text(
+                            TextDeltaEvent(
+                                message_id=hint_id,
+                                content=hint,
+                                is_final=True,
+                            ).model_dump_json()
+                        )
             else:
                 system_msg = {
                     "role": "system",
@@ -169,23 +338,24 @@ async def websocket_endpoint(websocket: WebSocket):
                         assistant_text, calls = parse_tool_calls_from_chat_response(resp)
                         if not assistant_text:
                             assistant_text = "（Kimi 未返回文本内容）"
-                        context_manager.add_assistant_output(assistant_text)
                         async with send_lock:
                             await websocket.send_text(
                                 TextDeltaEvent(
                                     message_id=assistant_message_id,
                                     content=assistant_text,
-                                    is_final=True,
+                                    is_final=False,
                                     intent=intent,
                                 ).model_dump_json()
                             )
 
+                        tool_results = {}
                         for c in calls:
                             if c.name == "render_graph_delta":
                                 ops = c.arguments.get("ops") or []
                                 if isinstance(ops, list) and ops:
                                     graph_emitted = True
                                     await websocket.send_text(GraphDeltaEvent(ops=ops).model_dump_json())
+                                    tool_results[c.id] = {"ok": True, "type": "graph_delta", "ops_count": len(ops)}
 
                             if c.name == "generate_image_prompt":
                                 if not isinstance(c.arguments, dict):
@@ -200,6 +370,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                     await websocket.send_text(
                                         ImageEvent(request_id=image_request_id, status="disabled", message="图片服务未启用").model_dump_json()
                                     )
+                                    tool_results[c.id] = {"ok": False, "type": "image", "status": "disabled"}
                                 elif not images_client:
                                     await websocket.send_text(
                                         ImageEvent(
@@ -208,7 +379,9 @@ async def websocket_endpoint(websocket: WebSocket):
                                             message="未配置 DASHSCOPE_API_KEY，无法调用图片模型。",
                                         ).model_dump_json()
                                     )
+                                    tool_results[c.id] = {"ok": False, "type": "image", "status": "failed"}
                                 else:
+                                    tool_results[c.id] = {"ok": True, "type": "image", "status": "queued", "request_id": image_request_id}
                                     async def _run_image_job() -> None:
                                         async with send_lock:
                                             await websocket.send_text(
@@ -280,6 +453,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                     await websocket.send_text(
                                         ImageEvent(request_id=image_request_id, status="disabled", message="图片服务未启用").model_dump_json()
                                     )
+                                    tool_results[c.id] = {"ok": False, "type": "image_edit", "status": "disabled"}
                                 elif not images_client:
                                     await websocket.send_text(
                                         ImageEvent(
@@ -288,7 +462,9 @@ async def websocket_endpoint(websocket: WebSocket):
                                             message="未配置 DASHSCOPE_API_KEY，无法调用图片模型。",
                                         ).model_dump_json()
                                     )
+                                    tool_results[c.id] = {"ok": False, "type": "image_edit", "status": "failed"}
                                 else:
+                                    tool_results[c.id] = {"ok": True, "type": "image_edit", "status": "queued", "request_id": image_request_id}
                                     async def _run_edit_job() -> None:
                                         async with send_lock:
                                             await websocket.send_text(
@@ -344,8 +520,56 @@ async def websocket_endpoint(websocket: WebSocket):
                                     bg_tasks.add(task)
                                     task.add_done_callback(lambda t: bg_tasks.discard(t))
 
-                        if graph_emitted or image_emitted:
-                            continue
+                        raw_tool_calls = get_raw_tool_calls(resp)
+                        if raw_tool_calls and tool_results:
+                            followup_messages = list(messages)
+                            followup_messages.append({"role": "assistant", "content": assistant_text, "tool_calls": raw_tool_calls})
+                            for tc in raw_tool_calls:
+                                tc_id = str(tc.get("id") or "")
+                                if not tc_id:
+                                    continue
+                                result = tool_results.get(tc_id) or {"ok": True}
+                                followup_messages.append(
+                                    {
+                                        "role": "tool",
+                                        "tool_call_id": tc_id,
+                                        "content": json.dumps(result, ensure_ascii=False),
+                                    }
+                                )
+                            resp2 = await asyncio.to_thread(
+                                kimi_client.chat,
+                                messages=followup_messages,
+                                temperature=0.3,
+                                stream=False,
+                            )
+                            choices2 = resp2.get("choices") or []
+                            msg2 = (choices2[0] or {}).get("message") if choices2 else {}
+                            final_text = (msg2 or {}).get("content") or ""
+                            if not str(final_text).strip():
+                                final_text = assistant_text
+                            context_manager.add_assistant_output(final_text)
+                            async with send_lock:
+                                await websocket.send_text(
+                                    TextDeltaEvent(
+                                        message_id=assistant_message_id,
+                                        content=final_text,
+                                        is_final=True,
+                                        intent=intent,
+                                    ).model_dump_json()
+                                )
+                            if graph_emitted or image_emitted:
+                                continue
+                        else:
+                            context_manager.add_assistant_output(assistant_text)
+                            async with send_lock:
+                                await websocket.send_text(
+                                    TextDeltaEvent(
+                                        message_id=assistant_message_id,
+                                        content=assistant_text,
+                                        is_final=True,
+                                        intent=intent,
+                                    ).model_dump_json()
+                                )
                     if not settings.enable_kimi_tools:
                         async with send_lock:
                             await websocket.send_text(
@@ -374,8 +598,12 @@ async def websocket_endpoint(websocket: WebSocket):
                         threading.Thread(target=_worker, daemon=True).start()
 
                         need_visual = float(intent.get("visual_necessity_score", 0.0)) >= settings.visual_threshold
-                        acc_chars = 0
-                        waitk = max(0, int(settings.waitk_chars))
+                        policy = WaitKPolicy(
+                            step_chars=int(settings.waitk_chars),
+                            min_interval_ms=int(settings.waitk_min_interval_ms),
+                            max_updates=int(settings.waitk_max_updates),
+                        )
+                        last_chart_sig = None
 
                         while True:
                             item = await q.get()
@@ -388,11 +616,32 @@ async def websocket_endpoint(websocket: WebSocket):
                             if not delta:
                                 continue
                             assistant_text += delta
-                            acc_chars += len(delta)
-                            if need_visual and (not graph_emitted):
-                                boundary_hit = any(p in delta for p in ("。", "！", "？", ".", "!", "?", "\n"))
-                                if acc_chars >= waitk or boundary_hit:
-                                    ops = renderer.generate_delta(intent, context_manager.get_context_vector())
+                            if need_visual:
+                                now_ms = int(time.monotonic() * 1000)
+                                if policy.observe(delta=delta, now_ms=now_ms):
+                                    combined = f"{user_input}\n{assistant_text}"
+                                    spec = parse_chart_spec(combined)
+                                    if spec and spec.points:
+                                        sig = (spec.chart_type, spec.title, spec.x_label, spec.y_label, spec.series_name, tuple((p.x, p.y) for p in spec.points))
+                                        if sig != last_chart_sig:
+                                            last_chart_sig = sig
+                                            async with send_lock:
+                                                await websocket.send_text(
+                                                    ChartDeltaEvent(
+                                                        chart_type=spec.chart_type,
+                                                        title=spec.title,
+                                                        x_label=spec.x_label,
+                                                        y_label=spec.y_label,
+                                                        series_name=spec.series_name,
+                                                        points=[{"x": p.x, "y": p.y} for p in spec.points],
+                                                    ).model_dump_json()
+                                                )
+
+                                    ops = renderer.generate_delta(
+                                        intent,
+                                        context_manager.get_context_vector(),
+                                        user_input=combined,
+                                    )
                                     async with send_lock:
                                         await websocket.send_text(GraphDeltaEvent(ops=ops).model_dump_json())
                                     graph_emitted = True
@@ -432,8 +681,25 @@ async def websocket_endpoint(websocket: WebSocket):
             if float(intent.get("visual_necessity_score", 0.0)) >= settings.visual_threshold:
                 if tool_mode_used and (graph_emitted or image_emitted):
                     continue
+                combined_final = f"{user_input}\n{assistant_text}"
+                spec = parse_chart_spec(combined_final)
+                if spec and spec.points:
+                    await websocket.send_text(
+                        ChartDeltaEvent(
+                            chart_type=spec.chart_type,
+                            title=spec.title,
+                            x_label=spec.x_label,
+                            y_label=spec.y_label,
+                            series_name=spec.series_name,
+                            points=[{"x": p.x, "y": p.y} for p in spec.points],
+                        ).model_dump_json()
+                    )
                 if not graph_emitted:
-                    ops = renderer.generate_delta(intent, context_manager.get_context_vector())
+                    ops = renderer.generate_delta(
+                        intent,
+                        context_manager.get_context_vector(),
+                        user_input=combined_final,
+                    )
                     await websocket.send_text(GraphDeltaEvent(ops=ops).model_dump_json())
 
                 image_request_id = f"img_{session_id}_{uuid.uuid4().hex[:8]}"
@@ -521,6 +787,99 @@ async def websocket_endpoint(websocket: WebSocket):
         for t in list(bg_tasks):
             t.cancel()
 
+
+@app.websocket("/ws/asr")
+async def websocket_asr(websocket: WebSocket):
+    await websocket.accept()
+    if not settings.xfyun_enable:
+        await websocket.send_text(
+            TextDeltaEvent(message_id="sys_asr", content="ASR 未启用：请设置 STREAMVIS_ENABLE_XFYUN_ASR=1", is_final=True).model_dump_json()
+        )
+        await websocket.close()
+        return
+    if not (settings.xfyun_app_id and settings.xfyun_access_key_id and settings.xfyun_access_key_secret):
+        await websocket.send_text(
+            TextDeltaEvent(
+                message_id="sys_asr",
+                content="ASR 配置缺失：请配置 XFYUN_APP_ID / XFYUN_ACCESS_KEY_ID / XFYUN_ACCESS_KEY_SECRET",
+                is_final=True,
+            ).model_dump_json()
+        )
+        await websocket.close()
+        return
+
+    audio_q: asyncio.Queue[bytes | None] = asyncio.Queue()
+    started = False
+
+    async def _audio_iter():
+        while True:
+            item = await audio_q.get()
+            if item is None:
+                break
+            yield item
+
+    async def _run_asr(feature_ids: str, eng_spk_match: int) -> None:
+        async for evt in stream_rtasr(
+            base_url=settings.xfyun_rtasr_base_url,
+            app_id=settings.xfyun_app_id,
+            access_key_id=settings.xfyun_access_key_id,
+            access_key_secret=settings.xfyun_access_key_secret,
+            audio_iter=_audio_iter(),
+            lang=settings.xfyun_lang,
+            audio_encode=settings.xfyun_audio_encode,
+            samplerate=settings.xfyun_samplerate,
+            role_type=settings.xfyun_role_type,
+            feature_ids=feature_ids,
+            eng_spk_match=eng_spk_match,
+        ):
+            await websocket.send_text(
+                TranscriptDeltaEvent(
+                    segment_id=evt.segment_id,
+                    speaker=evt.speaker,
+                    text=evt.text,
+                    is_final=evt.is_final,
+                ).model_dump_json()
+            )
+
+    asr_task: asyncio.Task | None = None
+    try:
+        while True:
+            msg = await websocket.receive()
+            if "text" in msg and msg["text"] is not None:
+                try:
+                    payload = json.loads(msg["text"])
+                except Exception:
+                    continue
+                action = str(payload.get("type") or payload.get("action") or "")
+                if action == "start" and not started:
+                    started = True
+                    feature_ids = str(payload.get("feature_ids") or settings.xfyun_feature_ids or "").strip()
+                    eng_spk_match = int(payload.get("eng_spk_match") or settings.xfyun_eng_spk_match or 0)
+                    asr_task = asyncio.create_task(_run_asr(feature_ids, eng_spk_match))
+                    await websocket.send_text(
+                        TextDeltaEvent(message_id="sys_asr", content="ASR 已开始（说话人分离已开启）", is_final=True).model_dump_json()
+                    )
+                if action == "stop":
+                    break
+            if "bytes" in msg and msg["bytes"] is not None:
+                if not started:
+                    continue
+                await audio_q.put(msg["bytes"])
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await audio_q.put(None)
+        if asr_task:
+            try:
+                await asyncio.wait_for(asr_task, timeout=3.0)
+            except Exception:
+                asr_task.cancel()
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+
 if __name__ == "__main__":
+    logging.basicConfig(level=settings.log_level.upper())
     logging.basicConfig(level=settings.log_level.upper())
     uvicorn.run("app.main:app", host=settings.host, port=settings.port, reload=True)

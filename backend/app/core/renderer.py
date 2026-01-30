@@ -3,9 +3,12 @@ from __future__ import annotations
 import random
 import uuid
 from collections import deque
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import networkx as nx
+
+from app.core.chart_parser import ChartSpec
+from app.core.semantic_plan import build_semantic_plan, to_graph_ops
 
 
 class IncrementalRenderer:
@@ -30,7 +33,22 @@ class IncrementalRenderer:
         self._pos_norm.clear()
         return [{"op": "clear"}]
 
-    def generate_delta(self, intent: Dict[str, Any], context_vector: List[float]) -> List[Dict[str, Any]]:
+    def generate_delta(
+        self,
+        intent: Dict[str, Any],
+        context_vector: List[float],
+        *,
+        user_input: str = "",
+        chart_spec: Optional[ChartSpec] = None,
+    ) -> List[Dict[str, Any]]:
+        if user_input:
+            plan = build_semantic_plan(user_input)
+            ops = self.apply_ops(to_graph_ops(plan))
+            pos = self._update_layout()
+            for nid, (x, y) in pos.items():
+                ops.append({"op": "update_node", "id": nid, "x": x, "y": y})
+            return ops
+
         new_node_id = str(uuid.uuid4())[:8]
         label = f"Node {new_node_id}"
         value = float(random.randint(10, 100))
@@ -54,6 +72,70 @@ class IncrementalRenderer:
             ops.append({"op": "update_node", "id": nid, "x": x, "y": y})
 
         return ops
+
+    def apply_ops(self, ops: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        out: List[Dict[str, Any]] = []
+        for op in ops:
+            t = op.get("op")
+            if t == "add_node":
+                nid = op.get("id")
+                if not nid or nid in self.nodes:
+                    continue
+                self.nodes[str(nid)] = {"id": str(nid), "label": op.get("label"), "value": op.get("value")}
+                self.graph.add_node(str(nid))
+                self._node_order.append(str(nid))
+                out.append(op)
+            elif t == "update_node":
+                nid = op.get("id")
+                if not nid or str(nid) not in self.nodes:
+                    continue
+                existing = self.nodes[str(nid)]
+                existing.update({k: v for k, v in op.items() if k not in {"op"}})
+                out.append(op)
+            elif t == "remove_node":
+                nid = op.get("id")
+                if not nid or str(nid) not in self.nodes:
+                    continue
+                victim = str(nid)
+                removed_edges = [e for e in self.edges if victim in e]
+                if removed_edges:
+                    self.edges = [e for e in self.edges if victim not in e]
+                    for a, b in removed_edges:
+                        if self.graph.has_edge(a, b):
+                            self.graph.remove_edge(a, b)
+                        out.append({"op": "remove_edge", "source": a, "target": b})
+                if self.graph.has_node(victim):
+                    self.graph.remove_node(victim)
+                self.nodes.pop(victim, None)
+                self._pos_norm.pop(victim, None)
+                out.append({"op": "remove_node", "id": victim})
+            elif t == "add_edge":
+                a = op.get("source")
+                b = op.get("target")
+                if not a or not b:
+                    continue
+                a = str(a)
+                b = str(b)
+                if a not in self.nodes or b not in self.nodes:
+                    continue
+                if (a, b) in self.edges or (b, a) in self.edges:
+                    continue
+                self.edges.append((a, b))
+                self.graph.add_edge(a, b)
+                out.append(op)
+            elif t == "remove_edge":
+                a = op.get("source")
+                b = op.get("target")
+                if not a or not b:
+                    continue
+                a = str(a)
+                b = str(b)
+                self.edges = [e for e in self.edges if e != (a, b) and e != (b, a)]
+                if self.graph.has_edge(a, b):
+                    self.graph.remove_edge(a, b)
+                out.append(op)
+        out.extend(self._evict_over_budget())
+        return out
 
     def _evict_over_budget(self) -> List[Dict[str, Any]]:
         ops: List[Dict[str, Any]] = []
