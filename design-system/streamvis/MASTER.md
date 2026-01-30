@@ -1,328 +1,334 @@
-# Design System Master File
+# StreamVis Design System v2.0
 
-> **LOGIC:** When building a specific page, first check `design-system/pages/[page-name].md`.
-> If that file exists, its rules **override** this Master file.
-> If not, strictly follow the rules below.
-
----
-
-**Project:** StreamVis
-**Generated:** 2026-01-30
-**Category:** AI Data Visualization Dashboard
+> **现代数据可视化界面设计系统**  
+> 设计风格：Clean, Minimal, Professional  
+> 参考：ChatGPT, Claude, Notion, Linear
 
 ---
 
-## Global Rules
+## 设计原则
 
-### Color Palette - Light Theme
+1. **简洁至上** - 去除多余装饰，聚焦内容
+2. **清晰层次** - 通过阴影、间距建立视觉层次
+3. **流畅动效** - 150-350ms 的平滑过渡
+4. **温暖色彩** - 避免纯黑纯白，使用温暖色调
 
-| Role | Hex | CSS Variable |
-|------|-----|--------------|
-| Primary | `#0d9488` | `--color-primary` |
-| Primary Light | `#14b8a6` | `--color-primary-light` |
-| Primary Dark | `#0f766e` | `--color-primary-dark` |
-| Accent | `#0284c7` | `--color-accent` |
-| Background | `#fafaf9` | `--color-background` |
-| Panel | `#ffffff` | `--color-panel` |
-| Text | `#1c1917` | `--color-text` |
-| Text Secondary | `#57534e` | `--color-text-secondary` |
-| Text Muted | `#a8a29e` | `--color-text-muted` |
-| Border | `#e7e5e4` | `--color-border` |
+---
 
-**Color Philosophy:** 
-- 清新明亮的青绿色作为主色调，传达专业与可信赖感
-- 温暖的灰白色背景，长时间使用不易疲劳
-- 深灰色文字确保最佳可读性
+## 色彩系统
 
-### Typography
-
-- **Heading Font:** JetBrains Mono (monospace)
-- **Body Font:** Inter (sans-serif)
-- **Mood:** Modern, clean, technical, professional
-- **Google Fonts:** [Inter + JetBrains Mono](https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap)
-
-**CSS Import:**
+### 主色调 (Primary)
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+--primary-50: #f0fdfa   /* 最浅 */
+--primary-100: #ccfbf1
+--primary-200: #99f6e4
+--primary-300: #5eead4
+--primary-400: #2dd4bf
+--primary-500: #14b8a6  /* 主色 */
+--primary-600: #0d9488  /* 按钮等 */
+--primary-700: #0f766e
+--primary-800: #115e59
+--primary-900: #134e4a  /* 最深 */
 ```
 
-### Spacing Variables
+### 中性色 (Gray)
+```css
+--gray-0: #ffffff       /* 纯白 */
+--gray-50: #fafaf9      /* 页面背景 */
+--gray-100: #f5f5f4     /* 卡片背景 */
+--gray-200: #e7e5e4     /* 边框 */
+--gray-300: #d6d3d1     /* 分割线 */
+--gray-400: #a8a29e     /* 禁用文字 */
+--gray-500: #78716c     /* 辅助文字 */
+--gray-600: #57534e     /* 次要文字 */
+--gray-700: #44403c
+--gray-800: #292524
+--gray-900: #1c1917     /* 主文字 */
+```
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--space-xs` | `4px` | Tight gaps |
-| `--space-sm` | `8px` | Icon gaps |
-| `--space-md` | `12px` | Standard padding |
-| `--space-lg` | `16px` | Section padding |
-| `--space-xl` | `24px` | Large gaps |
-| `--space-2xl` | `32px` | Section margins |
+### 语义化颜色
+```css
+/* 背景 */
+--bg-primary: #ffffff      /* 卡片、面板 */
+--bg-secondary: #fafaf9    /* 页面背景 */
+--bg-tertiary: #f5f5f4     /* 悬停背景 */
 
-### Shadow Depths
+/* 文字 */
+--text-primary: #1c1917      /* 标题、正文 */
+--text-secondary: #57534e    /* 次要文字 */
+--text-tertiary: #78716c     /* 辅助说明 */
+--text-quaternary: #a8a29e   /* 占位符 */
 
-| Level | Value | Usage |
-|-------|-------|-------|
-| `--shadow-xs` | `0 1px 2px rgba(0,0,0,0.02)` | Subtle lift |
-| `--shadow-sm` | `0 1px 3px rgba(0,0,0,0.04)` | Cards, buttons |
-| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.04)` | Elevated cards |
-| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.04)` | Modals, dropdowns |
-| `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.04)` | Overlays |
-
-### Border Radius
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--radius-sm` | `6px` | Small elements |
-| `--radius-md` | `10px` | Buttons, inputs |
-| `--radius-lg` | `14px` | Cards, panels |
-| `--radius-xl` | `18px` | Modals |
-| `--radius-full` | `9999px` | Pills, avatars |
+/* 边框 */
+--border-subtle: rgba(0,0,0,0.05)  /* 细边框 */
+--border-light: #e7e5e4           /* 输入框 */
+--border-default: #d6d3d1         /* 按钮边框 */
+```
 
 ---
 
-## Component Specs
+## 布局系统
 
-### Buttons
+### 整体布局
+```
+┌─────────────────────────────────────────────┐
+│  Sidebar (260px)   │  Main Content          │
+│                    │  ┌─────────────────┐   │
+│  Logo              │  │ Header          │   │
+│                    │  ├─────────────────┤   │
+│  Navigation        │  │                 │   │
+│  - New Chat        │  │ Viz Section     │   │
+│  - Upload          │  │ (Graph/Chart)   │   │
+│  - Voice           │  │                 │   │
+│                    │  ├─────────────────┤   │
+│  Footer            │  │ Chat Section    │   │
+│  - Status          │  │ (Messages)      │   │
+│                    │  │ [Input Area]    │   │
+└────────────────────┘  └─────────────────┘   │
+```
 
+### 响应式断点
+| 断点 | 宽度 | 布局变化 |
+|------|------|----------|
+| Desktop | >1024px | 双栏布局，侧边栏固定 |
+| Tablet | 768-1024px | 侧边栏可收起，单栏 |
+| Mobile | <768px | 侧边栏滑出，堆叠布局 |
+
+---
+
+## 组件规范
+
+### 按钮 (Button)
+
+**Primary Button**
 ```css
-/* Primary Button */
 .btn-primary {
   background: #0d9488;
   color: white;
-  padding: 8px 16px;
+  padding: 10px 20px;
   border-radius: 10px;
   font-weight: 500;
-  font-size: 13px;
-  border: 1px solid #0d9488;
+  font-size: 14px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   transition: all 150ms ease;
 }
-
 .btn-primary:hover {
   background: #0f766e;
-  border-color: #0f766e;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13,148,136,0.25);
 }
+```
 
-/* Secondary Button */
+**Secondary Button**
+```css
 .btn-secondary {
-  background: #ffffff;
+  background: #f5f5f4;
   color: #57534e;
   border: 1px solid #e7e5e4;
-  padding: 8px 16px;
+  padding: 10px 20px;
   border-radius: 10px;
-  font-weight: 500;
-  font-size: 13px;
-  transition: all 150ms ease;
 }
-
 .btn-secondary:hover {
-  background: #f5f5f4;
-  border-color: #a8a29e;
+  background: #e7e5e4;
   color: #1c1917;
 }
 ```
 
-### Cards / Panels
+### 消息气泡 (Message Bubble)
 
+**用户消息 - 参考 Claude 设计**
 ```css
-.panel {
-  background: #ffffff;
-  border-radius: 14px;
-  border: 1px solid #e7e5e4;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  overflow: hidden;
-}
-```
-
-### Inputs
-
-```css
-.input {
-  height: 40px;
-  padding: 0 12px;
-  border: 1px solid #e7e5e4;
-  border-radius: 10px;
-  font-size: 14px;
-  background: #ffffff;
-  color: #1c1917;
-  transition: all 150ms ease;
-}
-
-.input:hover {
-  border-color: #a8a29e;
-}
-
-.input:focus {
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.08);
-  outline: none;
-}
-```
-
-### Message Bubbles
-
-```css
-/* User Message */
 .message-user {
-  background: #0d9488;
-  color: white;
-  border-radius: 14px;
-  border-bottom-right-radius: 6px;
+  background: #f0efea;        /* 温暖灰色 */
+  color: #1c1917;
+  border-radius: 16px;
+  border-bottom-right-radius: 6px;  /* 不对称圆角 */
   padding: 12px 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
+```
 
-/* Assistant Message */
+**AI 消息**
+```css
 .message-assistant {
   background: #f5f5f4;
   color: #1c1917;
-  border: 1px solid #e7e5e4;
-  border-radius: 14px;
+  border-radius: 16px;
   border-bottom-left-radius: 6px;
   padding: 12px 16px;
 }
+```
 
-/* System Message */
+**系统消息**
+```css
 .message-system {
-  background: rgba(2, 132, 199, 0.08);
-  border: 1px solid rgba(2, 132, 199, 0.15);
+  background: rgba(14, 165, 233, 0.08);
   color: #0284c7;
-  border-radius: 9999px;
+  border-radius: 999px;
   padding: 6px 12px;
   font-size: 12px;
-  font-weight: 500;
 }
 ```
 
-### Modals
-
+### 输入框 (Input)
 ```css
-.modal-overlay {
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(4px);
-}
-
-.modal {
-  background: #ffffff;
-  border-radius: 18px;
+.input {
+  height: 44px;
+  padding: 0 16px;
+  background: #fafaf9;
   border: 1px solid #e7e5e4;
-  padding: 0;
-  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.08);
-  max-width: 520px;
-  width: 90%;
-  overflow: hidden;
+  border-radius: 12px;
+  font-size: 14px;
+  transition: all 150ms ease;
 }
-
-.modal-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #e7e5e4;
+.input:hover {
+  border-color: #d6d3d1;
 }
-
-.modal-body {
-  padding: 20px;
+.input:focus {
+  background: #ffffff;
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.08);
 }
 ```
 
-### Charts
-
+### 卡片/面板 (Card/Panel)
 ```css
-/* Graph Nodes */
-.node-circle {
-  fill: #0d9488;
-  stroke: #ffffff;
-  stroke-width: 2;
-  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1));
-}
-
-.node-text {
-  fill: #57534e;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.link-line {
-  stroke: #d6d3d1;
-  stroke-width: 2;
-}
-
-/* Plot Chart */
-.plot-line {
-  stroke: #0d9488;
-  stroke-width: 2.5;
-  fill: none;
-}
-
-.plot-area {
-  fill: rgba(13, 148, 136, 0.1);
-}
-
-.plot-dot {
-  fill: #0d9488;
-  stroke: #ffffff;
-  stroke-width: 2;
-}
-
-.plot-bar {
-  fill: #0d9488;
-  rx: 4;
-}
-
-.axis-text {
-  fill: #57534e;
-  font-size: 12px;
-}
-
-.grid-line {
-  stroke: #e7e5e4;
-  stroke-dasharray: 3,3;
+.panel {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 ```
 
 ---
 
-## Style Guidelines
+## 阴影系统
 
-**Style:** Light Mode (Modern Clean)
-
-**Keywords:** Light theme, clean, minimal, professional, friendly, approachable, modern, spacious
-
-**Best For:** Daytime use, professional applications, data visualization, collaborative tools
-
-**Key Effects:** 
-- Subtle shadows for depth
-- Rounded corners for friendliness
-- Clear visual hierarchy
-- Generous whitespace
-- Smooth transitions (150ms)
+| 名称 | 值 | 用途 |
+|------|-----|------|
+| xs | `0 1px 2px rgba(0,0,0,0.03)` | 最小提升 |
+| sm | `0 1px 3px rgba(0,0,0,0.04)` | 按钮、标签 |
+| md | `0 4px 6px -1px rgba(0,0,0,0.04)` | 卡片悬停 |
+| lg | `0 10px 15px -3px rgba(0,0,0,0.04)` | 下拉菜单 |
+| xl | `0 20px 25px -5px rgba(0,0,0,0.05)` | 模态框 |
+| accent | `0 4px 14px rgba(13,148,136,0.25)` | 主按钮悬停 |
 
 ---
 
-## Anti-Patterns (Do NOT Use)
+## 圆角系统
 
-- ❌ Dark mode default
-- ❌ Pure white background (use warm off-white #fafaf9)
-- ❌ Pure black text (use warm dark #1c1917)
-- ❌ Harsh shadows (use subtle, diffused shadows)
-- ❌ Sharp corners on interactive elements
-- ❌ Instant state changes (always use 150ms transitions)
-- ❌ Missing focus states
-- ❌ Emojis as icons — Use Lucide icons
-- ❌ Missing cursor:pointer — All clickable elements must have cursor:pointer
-- ❌ Low contrast text — Maintain 4.5:1 minimum contrast ratio
+| Token | 值 | 用途 |
+|-------|-----|------|
+| sm | 6px | 小按钮、标签 |
+| md | 8px | 输入框 |
+| lg | 12px | 卡片 |
+| xl | 16px | 大卡片、消息气泡 |
+| 2xl | 20px | 输入区域 |
+| full | 9999px | 圆形、胶囊形 |
 
 ---
 
-## Pre-Delivery Checklist
+## 动画系统
 
-Before delivering any UI code, verify:
+### 时长
+| 名称 | 值 | 用途 |
+|------|-----|------|
+| fast | 100ms | 颜色变化 |
+| normal | 150ms | 悬浮效果 |
+| slow | 250ms | 元素显示 |
+| slower | 350ms | 消息入场 |
 
-- [ ] No emojis used as icons (use Lucide instead)
-- [ ] All icons from consistent icon set (Lucide)
-- [ ] `cursor-pointer` on all clickable elements
-- [ ] Hover states with smooth transitions (150ms)
-- [ ] Light mode: text contrast 4.5:1 minimum
-- [ ] Focus states visible for keyboard navigation
-- [ ] `prefers-reduced-motion` respected
-- [ ] Responsive: 375px, 768px, 1024px, 1440px
-- [ ] No content hidden behind fixed navbars
-- [ ] No horizontal scroll on mobile
+### 缓动函数
+| 名称 | 值 | 用途 |
+|------|-----|------|
+| ease-out | `cubic-bezier(0,0,0.2,1)` | 大多数动画 |
+| spring | `cubic-bezier(0.34,1.56,0.64,1)` | 消息入场 |
+
+### 关键动画
+```css
+/* 消息入场 */
+@keyframes messageIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 加载旋转 */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 脉冲 */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+```
+
+---
+
+## 图表设计
+
+### 配色
+```css
+/* 节点 */
+--node-fill: #0d9488;
+--node-stroke: #ffffff;
+--node-shadow: rgba(0,0,0,0.15);
+
+/* 连线 */
+--link-stroke: #d6d3d1;
+
+/* 文字 */
+--text-label: #57534e;
+```
+
+### 折线图
+```css
+/* 线条 */
+--line-stroke: #0d9488;
+--line-width: 3px;
+
+/* 区域填充渐变 */
+--area-gradient: linear-gradient(180deg, rgba(13,148,136,0.3), rgba(13,148,136,0.02));
+
+/* 数据点 */
+--dot-fill: #0d9488;
+--dot-stroke: #ffffff;
+--dot-stroke-width: 2.5px;
+```
+
+---
+
+## 最佳实践
+
+### Do ✅
+- 使用不对称圆角（消息气泡）
+- 保持充足的留白（最小 16px）
+- 使用温暖的中性色而非纯黑纯白
+- 添加 150ms 的过渡动画
+- 悬浮时轻微上移（-1px）
+- 使用阴影而非边框来区分层次
+
+### Don't ❌
+- 避免使用 Emoji 作为图标
+- 避免纯黑（#000）和纯白（#fff）
+- 避免剧烈的动画和颜色变化
+- 避免小于 12px 的文字
+- 避免缺失焦点状态
+
+---
+
+## 更新日志
+
+### v2.0 (2026-01-30)
+- 全新现代化设计
+- 参考 ChatGPT/Claude 的消息设计
+- 新增侧边栏导航
+- 优化色彩系统
+- 改进动效设计

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Mic, Square, Save } from 'lucide-react';
+import { X, Mic, Square, Save, Loader2 } from 'lucide-react';
+import './VoicePrintModal.css';
 
 const WAV_MIME = 'audio/wav';
 
@@ -110,13 +111,11 @@ const VoicePrintModal = ({ open, onClose, onRegistered }) => {
       sourceRef.current?.disconnect();
       await audioCtxRef.current?.close();
       streamRef.current?.getTracks()?.forEach((t) => t.stop());
-    } catch {
-    } finally {
-      processorRef.current = null;
-      sourceRef.current = null;
-      audioCtxRef.current = null;
-      streamRef.current = null;
-    }
+    } catch {}
+    processorRef.current = null;
+    sourceRef.current = null;
+    audioCtxRef.current = null;
+    streamRef.current = null;
     setStatus('ready');
   };
 
@@ -155,11 +154,11 @@ const VoicePrintModal = ({ open, onClose, onRegistered }) => {
   const upload = async () => {
     const durSec = totalSamplesRef.current / 16000;
     if (durSec < 10) {
-      setError('声纹注册音频需至少 10 秒。');
+      setError('声纹注册音频需至少 10 秒');
       return;
     }
     if (durSec > 60) {
-      setError('声纹注册音频需不超过 60 秒。');
+      setError('声纹注册音频需不超过 60 秒');
       return;
     }
     setStatus('uploading');
@@ -190,44 +189,121 @@ const VoicePrintModal = ({ open, onClose, onRegistered }) => {
 
   if (!open) return null;
 
+  const getStatusDisplay = () => {
+    switch (status) {
+      case 'recording':
+        return { icon: <Square size={18} />, text: `停止录音 (${seconds}s)`, variant: 'danger' };
+      case 'requesting':
+        return { icon: <Loader2 size={18} className="animate-spin" />, text: '请求麦克风...', variant: 'secondary', disabled: true };
+      case 'stopping':
+        return { icon: <Loader2 size={18} className="animate-spin" />, text: '停止中...', variant: 'secondary', disabled: true };
+      case 'ready':
+        return { icon: <Save size={18} />, text: '注册声纹', variant: 'primary' };
+      case 'uploading':
+        return { icon: <Loader2 size={18} className="animate-spin" />, text: '上传中...', variant: 'primary', disabled: true };
+      default:
+        return { icon: <Mic size={18} />, text: '开始录音', variant: 'secondary' };
+    }
+  };
+
+  const statusDisplay = getStatusDisplay();
+
   return (
-    <div className="modal-mask" role="dialog" aria-modal="true">
-      <div className="modal-card">
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-container">
         <div className="modal-header">
-          <div className="modal-title">声纹注册（10–60 秒）</div>
-          <button className="modal-close" type="button" onClick={onClose}>
-            <X size={16} />
+          <div className="modal-title-group">
+            <h2 className="modal-title">声纹注册</h2>
+            <p className="modal-subtitle">录制 10-60 秒的语音样本</p>
+          </div>
+          <button className="modal-close" onClick={onClose}>
+            <X size={20} />
           </button>
         </div>
+
         <div className="modal-body">
-          <div className="modal-row">
-            <label>发言人名称</label>
-            <input value={speakerName} onChange={(e) => setSpeakerName(e.target.value)} placeholder="例如：张三 / Speaker A" />
+          {/* 录音状态指示器 */}
+          {status === 'recording' && (
+            <div className="recording-indicator">
+              <div className="recording-waves">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <span className="recording-time">{seconds} 秒</span>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label className="form-label">发言人名称</label>
+            <input
+              type="text"
+              className="form-input"
+              value={speakerName}
+              onChange={(e) => setSpeakerName(e.target.value)}
+              placeholder="例如：张三 / Speaker A"
+              disabled={status === 'recording' || status === 'uploading'}
+            />
           </div>
-          <div className="modal-row">
-            <label>uid（可选）</label>
-            <input value={uid} onChange={(e) => setUid(e.target.value)} placeholder="用于区分用户（可不填）" />
+
+          <div className="form-group">
+            <label className="form-label">用户 ID（可选）</label>
+            <input
+              type="text"
+              className="form-input"
+              value={uid}
+              onChange={(e) => setUid(e.target.value)}
+              placeholder="用于区分不同用户"
+              disabled={status === 'recording' || status === 'uploading'}
+            />
           </div>
-          <div className="modal-actions">
-            {status !== 'recording' ? (
-              <button className="btn" type="button" onClick={startRecording} disabled={status === 'uploading' || status === 'requesting'}>
-                <Mic size={16} />
-                开始录音
-              </button>
-            ) : (
-              <button className="btn" type="button" onClick={stopRecording}>
-                <Square size={16} />
-                停止（已录 {seconds}s）
-              </button>
-            )}
-            <button className="btn primary" type="button" onClick={upload} disabled={status !== 'ready'}>
-              <Save size={16} />
-              注册声纹
+
+          {error && (
+            <div className="alert alert-error">
+              {error}
+            </div>
+          )}
+
+          {featureId && (
+            <div className="alert alert-success">
+              <div className="success-title">✓ 注册成功</div>
+              <div className="success-id">ID: {featureId}</div>
+            </div>
+          )}
+
+          <div className="modal-hint">
+            <p>💡 提示：</p>
+            <ul>
+              <li>请在安静环境下录音</li>
+              <li>保持正常语速，朗读任意文本</li>
+              <li>录音时长需在 10-60 秒之间</li>
+              <li>注册后可在语音转写中识别说话人</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          {status !== 'idle' && status !== 'requesting' ? (
+            <button
+              className={`btn btn-${statusDisplay.variant}`}
+              onClick={status === 'recording' ? stopRecording : upload}
+              disabled={statusDisplay.disabled}
+            >
+              {statusDisplay.icon}
+              <span>{statusDisplay.text}</span>
             </button>
-          </div>
-          {featureId ? <div className="modal-success">feature_id：{featureId}</div> : null}
-          {error ? <div className="modal-error">{error}</div> : null}
-          <div className="modal-hint">注册后可在语音转写中开启“注册声纹模式”，说话人分离会更稳定。</div>
+          ) : (
+            <button
+              className="btn btn-secondary"
+              onClick={startRecording}
+              disabled={status === 'requesting'}
+            >
+              <Mic size={18} />
+              <span>开始录音</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -235,4 +311,3 @@ const VoicePrintModal = ({ open, onClose, onRegistered }) => {
 };
 
 export default VoicePrintModal;
-

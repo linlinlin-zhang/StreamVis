@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Mic, RefreshCw, Trash2, Upload, UserRound, 
+  PanelLeft, PanelRight, Settings, Send, 
+  MoreHorizontal, ChevronDown, Sparkles 
+} from 'lucide-react';
 import ChatInterface from './components/ChatInterface';
 import StreamChart from './components/StreamChart';
 import StreamPlot from './components/StreamPlot';
-import TopBar from './components/TopBar';
 import VoicePrintModal from './components/VoicePrintModal';
 import './App.css';
 
@@ -18,6 +22,7 @@ function App() {
   const [asrActive, setAsrActive] = useState(false);
   const [asrStatus, setAsrStatus] = useState('idle');
   const [voicePrintOpen, setVoicePrintOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [voicePrints, setVoicePrints] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('streamvis_voiceprints') || '{}');
@@ -25,10 +30,10 @@ function App() {
       return {};
     }
   });
+
   const wsRef = useRef(null);
   const reconnectTimerRef = useRef(null);
   const shouldReconnectRef = useRef(true);
-
   const asrWsRef = useRef(null);
   const micStreamRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -38,6 +43,7 @@ function App() {
   const byteChunksRef = useRef([]);
   const mediaRecorderRef = useRef(null);
   const recordChunksRef = useRef([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem('streamvis_voiceprints', JSON.stringify(voicePrints || {}));
@@ -117,9 +123,7 @@ function App() {
       const ws = new WebSocket('ws://localhost:8000/ws/chat');
       wsRef.current = ws;
 
-      ws.onopen = () => {
-        setConnectionStatus('connected');
-      };
+      ws.onopen = () => setConnectionStatus('connected');
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -137,13 +141,11 @@ function App() {
               content,
               isFinal: Boolean(data.is_final ?? true),
             };
-
             if (existingIndex >= 0) {
               const updated = [...prev];
               updated[existingIndex] = nextMessage;
               return updated;
             }
-
             return [...prev, nextMessage];
           });
           return;
@@ -207,6 +209,7 @@ function App() {
           });
         }
       };
+
       ws.onerror = () => {
         setConnectionStatus('error');
         setConnectionError('WebSocket 连接失败');
@@ -252,9 +255,7 @@ function App() {
       form.append('file', file);
       const resp = await fetch('http://localhost:8000/api/kimi/files/index', { method: 'POST', body: form });
       const data = await resp.json();
-      if (!resp.ok) {
-        throw new Error(data?.detail || '文件解析失败');
-      }
+      if (!resp.ok) throw new Error(data?.detail || '文件解析失败');
       const systemContext = data?.system_context || '';
       if (systemContext) sendSystemContext(systemContext);
       const chunks = data?.chunks_indexed ?? null;
@@ -275,84 +276,6 @@ function App() {
     if (wsRef.current) wsRef.current.close();
     setConnectionStatus('connecting');
     setConnectionError('');
-    reconnectTimerRef.current = window.setTimeout(() => {
-      shouldReconnectRef.current = true;
-      const ws = new WebSocket('ws://localhost:8000/ws/chat');
-      wsRef.current = ws;
-      ws.onopen = () => setConnectionStatus('connected');
-      ws.onerror = () => {
-        setConnectionStatus('error');
-        setConnectionError('WebSocket 连接失败');
-      };
-      ws.onclose = () => {
-        if (!shouldReconnectRef.current) return;
-        setConnectionStatus('closed');
-      };
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'text_delta') {
-          setMessages((prev) => {
-            const messageId = data.message_id || 'assistant';
-            const existingIndex = prev.findIndex((m) => m.id === messageId);
-            const delta = data.delta ?? null;
-            const baseContent = existingIndex >= 0 ? prev[existingIndex].content : '';
-            const content = delta !== null ? `${baseContent}${delta}` : data.content ?? '';
-            const nextMessage = {
-              id: messageId,
-              role: 'assistant',
-              content,
-              isFinal: Boolean(data.is_final ?? true),
-            };
-            if (existingIndex >= 0) {
-              const updated = [...prev];
-              updated[existingIndex] = nextMessage;
-              return updated;
-            }
-            return [...prev, nextMessage];
-          });
-        } else if (data.type === 'graph_delta') {
-          setGraphData((prev) => {
-            const nodeMap = new Map(prev.nodes.map((n) => [n.id, n]));
-            const links = [...prev.links];
-            const ops = Array.isArray(data.content) ? data.content : Array.isArray(data.ops) ? data.ops : [];
-            for (const op of ops) {
-              if (op.op === 'add_node') {
-                if (!nodeMap.has(op.id)) nodeMap.set(op.id, { ...op });
-              } else if (op.op === 'update_node') {
-                const existing = nodeMap.get(op.id);
-                if (existing) nodeMap.set(op.id, { ...existing, ...op });
-              } else if (op.op === 'remove_node') {
-                nodeMap.delete(op.id);
-                for (let i = links.length - 1; i >= 0; i--) {
-                  if (links[i].source === op.id || links[i].target === op.id) links.splice(i, 1);
-                }
-              } else if (op.op === 'add_edge') {
-                links.push({ source: op.source, target: op.target, id: `${op.source}__${op.target}` });
-              } else if (op.op === 'remove_edge') {
-                for (let i = links.length - 1; i >= 0; i--) {
-                  if (links[i].source === op.source && links[i].target === op.target) links.splice(i, 1);
-                  if (links[i].source === op.target && links[i].target === op.source) links.splice(i, 1);
-                }
-              } else if (op.op === 'clear') {
-                nodeMap.clear();
-                links.length = 0;
-              }
-            }
-            const nodeIds = new Set([...nodeMap.keys()]);
-            const filteredLinks = links.filter((l) => nodeIds.has(l.source) && nodeIds.has(l.target));
-            return { nodes: [...nodeMap.values()], links: filteredLinks };
-          });
-        } else if (data.type === 'image') {
-          setImageState({
-            status: data.status || 'unknown',
-            url: data.url || '',
-            message: data.message || '',
-            prompt: data.prompt || '',
-            requestId: data.request_id || '',
-          });
-        }
-      };
-    }, 100);
   };
 
   const handleClear = () => {
@@ -376,29 +299,16 @@ function App() {
       sourceRef.current?.disconnect();
       await audioCtxRef.current?.close();
       micStreamRef.current?.getTracks()?.forEach((t) => t.stop());
-    } catch {
-    } finally {
-      processorRef.current = null;
-      sourceRef.current = null;
-      audioCtxRef.current = null;
-      micStreamRef.current = null;
-      byteChunksRef.current = [];
-    }
-
+    } catch {}
     try {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') mediaRecorderRef.current.stop();
-    } catch {
-    }
-
+    } catch {}
     try {
       if (asrWsRef.current && asrWsRef.current.readyState === WebSocket.OPEN) {
         asrWsRef.current.send(JSON.stringify({ type: 'stop' }));
       }
       asrWsRef.current?.close();
-    } catch {
-    } finally {
-      asrWsRef.current = null;
-    }
+    } catch {}
     setAsrStatus('idle');
   };
 
@@ -411,16 +321,10 @@ function App() {
 
     ws.onmessage = (event) => {
       let data = null;
-      try {
-        data = JSON.parse(event.data);
-      } catch {
-        return;
-      }
+      try { data = JSON.parse(event.data); } catch { return; }
       if (data.type === 'transcript_delta') {
         upsertTranscriptMessage(data.segment_id, data.speaker, data.text || '', data.is_final);
-        if (data.is_final) {
-          feedChatBackend(data.text || '', data.speaker);
-        }
+        if (data.is_final) feedChatBackend(data.text || '', data.speaker);
         return;
       }
       if (data.type === 'text_delta' && (data.message_id || '').startsWith('sys_asr')) {
@@ -428,25 +332,19 @@ function App() {
       }
     };
     ws.onerror = () => setAsrStatus('error');
-    ws.onclose = () => {
-      if (asrActive) setAsrStatus('idle');
-    };
+    ws.onclose = () => { if (asrActive) setAsrStatus('idle'); };
 
     ws.onopen = async () => {
       setAsrStatus('running');
       const featureIds = Object.values(voicePrints || {}).join(',');
       ws.send(JSON.stringify({ type: 'start', feature_ids: featureIds, eng_spk_match: featureIds ? 1 : 0 }));
-
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         micStreamRef.current = stream;
-
         try {
           const rec = new MediaRecorder(stream);
           recordChunksRef.current = [];
-          rec.ondataavailable = (e) => {
-            if (e.data && e.data.size) recordChunksRef.current.push(e.data);
-          };
+          rec.ondataavailable = (e) => { if (e.data && e.data.size) recordChunksRef.current.push(e.data); };
           rec.onstop = () => {
             if (!recordChunksRef.current.length) return;
             const blob = new Blob(recordChunksRef.current, { type: 'audio/webm' });
@@ -455,8 +353,7 @@ function App() {
           };
           mediaRecorderRef.current = rec;
           rec.start(1000);
-        } catch {
-        }
+        } catch {}
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         audioCtxRef.current = audioCtx;
@@ -495,10 +392,7 @@ function App() {
           if (parts.length && need === 0) {
             const out = new Uint8Array(frameBytes);
             let off = 0;
-            for (const p of parts) {
-              out.set(p, off);
-              off += p.length;
-            }
+            for (const p of parts) { out.set(p, off); off += p.length; }
             sock.send(out);
           }
         }, 40);
@@ -510,90 +404,173 @@ function App() {
     };
   };
 
-  const toggleAsr = () => {
-    if (asrActive) stopAsr();
-    else startAsr();
-  };
+  const toggleAsr = () => { if (asrActive) stopAsr(); else startAsr(); };
 
-  const statusText =
-    connectionStatus === 'connected'
-      ? '已连接'
-      : connectionStatus === 'connecting'
-        ? '连接中'
-        : connectionStatus === 'error'
-          ? connectionError || '错误'
-          : '已断开';
+  const statusInfo = {
+    connected: { text: '已连接', dot: 'connected' },
+    connecting: { text: '连接中', dot: 'connecting' },
+    error: { text: connectionError || '错误', dot: 'error' },
+    closed: { text: '已断开', dot: 'error' },
+  }[connectionStatus] || { text: '未知', dot: '' };
 
   return (
-    <div className="app-shell">
-      <TopBar
-        status={connectionStatus}
-        statusText={statusText}
-        onReconnect={handleReconnect}
-        onClear={handleClear}
-        onUploadFile={handleUploadFile}
-        uploadDisabled={connectionStatus !== 'connected' || uploadBusy}
-        onToggleVoice={toggleAsr}
-        voiceActive={asrActive}
-        voiceDisabled={connectionStatus !== 'connected'}
-        onOpenVoicePrint={() => setVoicePrintOpen(true)}
-      />
-      <div className="main">
-        <div className="panel viz-panel">
-          <div className="viz-toolbar">
-            <button className={`viz-tab ${vizMode === 'chart' ? 'active' : ''}`} type="button" onClick={() => setVizMode('chart')} disabled={!chartData}>
-              图表
-            </button>
-            <button className={`viz-tab ${vizMode === 'graph' ? 'active' : ''}`} type="button" onClick={() => setVizMode('graph')}>
-              图谱
+    <div className="app">
+      {/* 侧边栏 */}
+      <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+        <div className="sidebar-header">
+          <div className="logo">
+            <div className="logo-icon">
+              <Sparkles size={20} />
+            </div>
+            <span className="logo-text">StreamVis</span>
+          </div>
+          <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <PanelLeft size={18} />
+          </button>
+        </div>
+
+        <nav className="sidebar-nav">
+          <div className="nav-section">
+            <span className="nav-label">对话</span>
+            <button className="nav-item active" onClick={handleClear}>
+              <span className="nav-icon">+</span>
+              <span className="nav-text">新建对话</span>
             </button>
           </div>
-          {vizMode === 'chart' ? <StreamPlot data={chartData} /> : <StreamChart data={graphData} />}
-          {imageState.status && imageState.status !== 'idle' ? (
-            <div className="image-overlay">
-              <div className="image-overlay-card">
-                <div className="image-overlay-top">
-                  <div className="image-overlay-title">AI 成图</div>
-                  <button className="image-overlay-close" type="button" onClick={() => setImageState({ status: 'idle', url: '', message: '' })}>
-                    关闭
-                  </button>
-                </div>
-                {imageState.status === 'queued' || imageState.status === 'running' ? (
-                  <div className="image-overlay-status">
-                    {imageState.status === 'queued' ? '排队中…' : '生成中…'}
+
+          <div className="nav-section">
+            <span className="nav-label">工具</span>
+            <button className="nav-item" onClick={() => fileInputRef.current?.click()} disabled={connectionStatus !== 'connected' || uploadBusy}>
+              <Upload size={16} />
+              <span className="nav-text">上传文件</span>
+            </button>
+            <button className={`nav-item ${asrActive ? 'active' : ''}`} onClick={toggleAsr} disabled={connectionStatus !== 'connected'}>
+              <Mic size={16} />
+              <span className="nav-text">{asrActive ? '停止录音' : '语音输入'}</span>
+            </button>
+            <button className="nav-item" onClick={() => setVoicePrintOpen(true)}>
+              <UserRound size={16} />
+              <span className="nav-text">声纹注册</span>
+            </button>
+          </div>
+
+          <div className="nav-section">
+            <span className="nav-label">系统</span>
+            <button className="nav-item" onClick={handleReconnect}>
+              <RefreshCw size={16} />
+              <span className="nav-text">重新连接</span>
+            </button>
+          </div>
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="connection-status">
+            <span className={`status-dot ${statusInfo.dot}`} />
+            <span className="status-text">{statusInfo.text}</span>
+          </div>
+        </div>
+      </aside>
+
+      {/* 主内容区 */}
+      <main className="main-content">
+        {/* 顶部栏 */}
+        <header className="top-header">
+          <div className="header-left">
+            {!sidebarOpen && (
+              <button className="header-btn" onClick={() => setSidebarOpen(true)}>
+                <PanelRight size={18} />
+              </button>
+            )}
+            <h1 className="page-title">数据可视化对话</h1>
+          </div>
+          <div className="header-right">
+            <div className="viz-switcher">
+              <button className={`switcher-btn ${vizMode === 'graph' ? 'active' : ''}`} onClick={() => setVizMode('graph')}>
+                图谱
+              </button>
+              <button className={`switcher-btn ${vizMode === 'chart' ? 'active' : ''}`} onClick={() => setVizMode('chart')} disabled={!chartData}>
+                图表
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* 内容网格 */}
+        <div className="content-grid">
+          {/* 可视化区域 */}
+          <div className="viz-section">
+            <div className="viz-container">
+              {vizMode === 'chart' ? <StreamPlot data={chartData} /> : <StreamChart data={graphData} />}
+              
+              {/* 空状态 */}
+              {graphData.nodes.length === 0 && vizMode === 'graph' && (
+                <div className="empty-state">
+                  <div className="empty-icon">
+                    <Sparkles size={48} />
                   </div>
-                ) : null}
-                {imageState.status === 'failed' ? (
-                  <div className="image-overlay-error">{imageState.message || '生成失败'}</div>
-                ) : null}
-                {imageState.status === 'disabled' ? (
-                  <div className="image-overlay-error">{imageState.message || '图片服务未启用'}</div>
-                ) : null}
-                {imageState.status === 'succeeded' && imageState.url ? (
-                  <img className="image-overlay-img" src={imageState.url} alt="AI generated" />
-                ) : null}
-              </div>
+                  <h3 className="empty-title">开始您的数据探索之旅</h3>
+                  <p className="empty-desc">
+                    在右侧对话框中描述您的数据或提出问题，<br />
+                    AI 将自动为您生成可视化图表。
+                  </p>
+                </div>
+              )}
+
+              {/* AI 成图覆盖层 */}
+              {imageState.status && imageState.status !== 'idle' && (
+                <div className="image-panel">
+                  <div className="image-panel-header">
+                    <span className="image-panel-title">AI 生成图像</span>
+                    <button className="image-panel-close" onClick={() => setImageState({ status: 'idle', url: '', message: '' })}>
+                      ×
+                    </button>
+                  </div>
+                  <div className="image-panel-body">
+                    {(imageState.status === 'queued' || imageState.status === 'running') && (
+                      <div className="image-loading">
+                        <div className="loading-spinner" />
+                        <span>{imageState.status === 'queued' ? '排队中...' : '生成中...'}</span>
+                      </div>
+                    )}
+                    {imageState.status === 'failed' && (
+                      <div className="image-error">{imageState.message || '生成失败'}</div>
+                    )}
+                    {imageState.status === 'disabled' && (
+                      <div className="image-error">{imageState.message || '图片服务未启用'}</div>
+                    )}
+                    {imageState.status === 'succeeded' && imageState.url && (
+                      <img src={imageState.url} alt="AI generated" />
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          ) : null}
-          {graphData.nodes.length === 0 ? (
-            <div className="viz-empty">
-              <div className="viz-empty-card">
-                <h3 className="viz-empty-title">增量可视化</h3>
-                <p className="viz-empty-desc">
-                  在右侧输入对数据的描述或问题；当系统判断需要可视化时，会以增量方式更新图结构，尽量保持布局稳定。
-                </p>
-              </div>
-            </div>
-          ) : null}
+          </div>
+
+          {/* 对话区域 */}
+          <div className="chat-section">
+            <ChatInterface 
+              messages={messages} 
+              onSendMessage={sendMessage} 
+              disabled={connectionStatus !== 'connected'} 
+            />
+          </div>
         </div>
-        <div className="panel chat-panel">
-          <ChatInterface
-            messages={messages}
-            onSendMessage={sendMessage}
-            disabled={connectionStatus !== 'connected'}
-          />
-        </div>
-      </div>
+      </main>
+
+      {/* 隐藏的文件输入 */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleUploadFile(f);
+          e.target.value = '';
+        }}
+      />
+
+      {/* 声纹注册模态框 */}
       <VoicePrintModal
         open={voicePrintOpen}
         onClose={() => setVoicePrintOpen(false)}
