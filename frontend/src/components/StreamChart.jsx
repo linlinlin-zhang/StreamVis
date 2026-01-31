@@ -9,34 +9,29 @@ const StreamChart = ({ data }) => {
   const nodesGRef = useRef(null);
   const dims = useMemo(() => ({ width: 1000, height: 700 }), []);
 
-  // 现代化配色方案
+  // 明亮主题配色
   const colors = {
-    // 节点颜色 - 使用 primary 色系的渐变
     node: {
-      fill: '#0d9488',
+      fill: '#000000',
       stroke: '#ffffff',
-      strokeWidth: 2.5,
+      strokeWidth: 2,
     },
-    // 连线颜色
     link: {
-      stroke: '#d6d3d1',
+      stroke: '#e5e7eb',
       strokeWidth: 1.5,
     },
-    // 文字颜色
     text: {
-      fill: '#57534e',
+      fill: '#4b5563',
       fontSize: 12,
       fontWeight: 500,
     },
-    // 高亮颜色
-    highlight: '#14b8a6',
+    highlight: '#3b82f6',
   };
 
   useEffect(() => {
     const svg = d3.select(svgRef.current);
     svg.attr('viewBox', `0 0 ${dims.width} ${dims.height}`);
 
-    // 定义阴影滤镜
     const defs = svg.append('defs');
     
     // 节点阴影
@@ -50,9 +45,8 @@ const StreamChart = ({ data }) => {
       .attr('dx', 0)
       .attr('dy', 2)
       .attr('stdDeviation', 3)
-      .attr('flood-color', 'rgba(0,0,0,0.15)');
+      .attr('flood-color', 'rgba(0,0,0,0.1)');
 
-    // 创建容器组
     const rootG = svg.append('g').attr('class', 'viz-root');
     const linksG = rootG.append('g').attr('class', 'viz-links');
     const nodesG = rootG.append('g').attr('class', 'viz-nodes');
@@ -61,7 +55,7 @@ const StreamChart = ({ data }) => {
     linksGRef.current = linksG;
     nodesGRef.current = nodesG;
 
-    // 缩放功能
+    // 缩放
     const zoom = d3.zoom()
       .scaleExtent([0.3, 3])
       .on('zoom', (event) => {
@@ -70,7 +64,7 @@ const StreamChart = ({ data }) => {
 
     svg.call(zoom);
 
-    // 创建力导向模拟
+    // 力导向模拟
     simulationRef.current = d3.forceSimulation()
       .alphaDecay(0.02)
       .velocityDecay(0.3)
@@ -94,7 +88,6 @@ const StreamChart = ({ data }) => {
     const linkForce = simulation.force('link');
     const currentNodes = simulation.nodes();
     
-    // 合并节点数据，保留位置信息
     const nextNodes = data.nodes.map((n) => {
       const existing = currentNodes.find((en) => en.id === n.id);
       return existing ? Object.assign(existing, n) : { ...n };
@@ -121,7 +114,7 @@ const StreamChart = ({ data }) => {
             .attr('opacity', 0)
             .transition()
             .duration(300)
-            .attr('opacity', 1),
+            .attr('opacity', 0.6),
         (update) => update,
         (exit) => exit.transition().duration(200).attr('opacity', 0).remove()
       );
@@ -140,7 +133,6 @@ const StreamChart = ({ data }) => {
               .on('drag', dragged)
               .on('end', dragended));
 
-          // 节点圆圈
           g.append('circle')
             .attr('r', 0)
             .attr('fill', colors.node.fill)
@@ -150,19 +142,18 @@ const StreamChart = ({ data }) => {
             .transition()
             .duration(400)
             .ease(d3.easeBackOut)
-            .attr('r', 12);
+            .attr('r', 10);
 
-          // 节点文字
           g.append('text')
-            .attr('x', 18)
+            .attr('x', 16)
             .attr('y', 4)
             .attr('font-size', colors.text.fontSize)
             .attr('font-weight', colors.text.fontWeight)
             .attr('fill', colors.text.fill)
             .attr('font-family', 'Inter, sans-serif')
             .style('pointer-events', 'none')
-            .style('text-shadow', '0 1px 2px rgba(255,255,255,0.8)')
             .style('opacity', 0)
+            .text((d) => d.label || d.id)
             .transition()
             .delay(200)
             .duration(300)
@@ -177,9 +168,6 @@ const StreamChart = ({ data }) => {
           exit.transition().delay(200).duration(100).remove();
         }
       );
-
-    // 更新文字内容
-    nodeSel.select('text').text((d) => d.label || d.id);
 
     // 拖拽函数
     function dragstarted(event, d) {
@@ -201,7 +189,6 @@ const StreamChart = ({ data }) => {
       d3.select(this).select('circle').attr('stroke', colors.node.stroke);
     }
 
-    // 模拟 tick
     simulation.on('tick', () => {
       linkSel
         .attr('x1', (d) => d.source.x)
@@ -213,7 +200,7 @@ const StreamChart = ({ data }) => {
     });
 
     simulation.alpha(0.5).restart();
-  }, [data]);
+  }, [data, colors]);
 
   return (
     <svg 
@@ -221,7 +208,7 @@ const StreamChart = ({ data }) => {
       width="100%" 
       height="100%" 
       role="img" 
-      aria-label="关系图谱可视化"
+      aria-label="知识图谱可视化"
       style={{ display: 'block' }}
     />
   );

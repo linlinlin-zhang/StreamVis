@@ -54,7 +54,7 @@ def register_voiceprint(
     if uid:
         body["uid"] = uid
 
-    sig, _ = build_signature({**q, **body}, access_key_secret=access_key_secret)
+    sig, _ = build_signature(q, access_key_secret=access_key_secret)
     url = register_url
     if "?" not in url:
         url = url + "?" + urlencode(q)
@@ -87,7 +87,7 @@ def update_voiceprint(
     }
     audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
     body: Dict[str, Any] = {"audio_data": audio_b64, "audio_type": audio_type, "feature_id": feature_id}
-    sig, _ = build_signature({**q, **body}, access_key_secret=access_key_secret)
+    sig, _ = build_signature(q, access_key_secret=access_key_secret)
     url = update_url
     if "?" not in url:
         url = url + "?" + urlencode(q)
@@ -109,7 +109,7 @@ def delete_voiceprint(
         "signatureRandom": uuid.uuid4().hex[:12],
     }
     body: Dict[str, Any] = {"feature_ids": feature_ids}
-    sig, _ = build_signature({**q, **body}, access_key_secret=access_key_secret)
+    sig, _ = build_signature(q, access_key_secret=access_key_secret)
     url = delete_url
     if "?" not in url:
         url = url + "?" + urlencode(q)

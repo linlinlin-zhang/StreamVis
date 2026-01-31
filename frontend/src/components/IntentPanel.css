@@ -1,0 +1,253 @@
+/* ==========================================
+   IntentPanel - 明亮主题意图分析
+   ========================================== */
+
+.side-panel {
+  width: 320px;
+  height: 100%;
+  background: #ffffff;
+  border-left: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: all var(--duration-fast);
+}
+
+.close-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: var(--space-4) 0 var(--space-3);
+}
+
+/* 当前意图 */
+.current-intent {
+  margin-bottom: var(--space-4);
+}
+
+.intent-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+}
+
+.intent-type {
+  margin-bottom: var(--space-4);
+}
+
+.intent-badge {
+  display: inline-block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 意图分数 */
+.intent-score {
+  margin-bottom: var(--space-4);
+}
+
+.score-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.score-bar-container {
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--space-2);
+}
+
+.score-bar {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease;
+}
+
+.score-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* 实体标签 */
+.intent-entities {
+  border-top: 1px solid var(--border-default);
+  padding-top: var(--space-3);
+}
+
+.entities-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.entities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.entity-tag {
+  padding: 4px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 意图历史 */
+.intent-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+}
+
+.history-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.history-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-type {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.history-score {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.history-time {
+  margin-left: auto;
+  font-size: 11px;
+}
+
+/* 意图图表 */
+.intent-chart {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  height: 120px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+}
+
+.spark-bar {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s ease;
+  min-height: 4px;
+}
+
+/* 帮助文本 */
+.help-text {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.help-text p {
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+  color: var(--text-secondary);
+}
+
+.help-text ul {
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
+.help-text li {
+  margin-bottom: var(--space-1);
+}

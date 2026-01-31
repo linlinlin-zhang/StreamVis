@@ -1,202 +1,216 @@
-# StreamVis Design System v2.0
+# StreamVis Design System v3.0
 
-> **现代数据可视化界面设计系统**  
-> 设计风格：Clean, Minimal, Professional  
-> 参考：ChatGPT, Claude, Notion, Linear
+> **实时意图成图系统**
+> 设计风格：明亮现代 / ChatGPT-like / 品牌黑色
+> 适用场景：会议、讨论、头脑风暴
 
 ---
 
 ## 设计原则
 
-1. **简洁至上** - 去除多余装饰，聚焦内容
-2. **清晰层次** - 通过阴影、间距建立视觉层次
-3. **流畅动效** - 150-350ms 的平滑过渡
-4. **温暖色彩** - 避免纯黑纯白，使用温暖色调
+1. **简洁现代** - 白色背景，黑色品牌元素，类似 ChatGPT 风格
+2. **高对比度** - 黑色品牌色在白色背景上清晰突出
+3. **专注内容** - 减少装饰，聚焦对话和可视化内容
+4. **专业商务** - 适合办公场景和商务会议
 
 ---
 
 ## 色彩系统
 
-### 主色调 (Primary)
+### 主色调 - 黑白灰阶
 ```css
---primary-50: #f0fdfa   /* 最浅 */
---primary-100: #ccfbf1
---primary-200: #99f6e4
---primary-300: #5eead4
---primary-400: #2dd4bf
---primary-500: #14b8a6  /* 主色 */
---primary-600: #0d9488  /* 按钮等 */
---primary-700: #0f766e
---primary-800: #115e59
---primary-900: #134e4a  /* 最深 */
-```
-
-### 中性色 (Gray)
-```css
---gray-0: #ffffff       /* 纯白 */
---gray-50: #fafaf9      /* 页面背景 */
---gray-100: #f5f5f4     /* 卡片背景 */
---gray-200: #e7e5e4     /* 边框 */
---gray-300: #d6d3d1     /* 分割线 */
---gray-400: #a8a29e     /* 禁用文字 */
---gray-500: #78716c     /* 辅助文字 */
---gray-600: #57534e     /* 次要文字 */
---gray-700: #44403c
---gray-800: #292524
---gray-900: #1c1917     /* 主文字 */
+--color-black: #000000       /* 品牌色 */
+--color-gray-50: #f9fafb     /* 页面背景 */
+--color-gray-100: #f3f4f6    /* 卡片背景 */
+--color-gray-200: #e5e7eb    /* 边框 */
+--color-gray-300: #d1d5db    /* 分割线 */
+--color-gray-400: #9ca3af    /* 禁用文字 */
+--color-gray-500: #6b7280    /* 辅助文字 */
+--color-gray-600: #4b5563    /* 次要文字 */
+--color-gray-700: #374151    /* 正文 */
+--color-gray-800: #1f2937    /* 标题 */
+--color-gray-900: #111827    /* 深色文字 */
+--color-white: #ffffff       /* 纯白背景 */
 ```
 
 ### 语义化颜色
 ```css
 /* 背景 */
---bg-primary: #ffffff      /* 卡片、面板 */
---bg-secondary: #fafaf9    /* 页面背景 */
---bg-tertiary: #f5f5f4     /* 悬停背景 */
+--bg-primary: #ffffff       /* 主背景 */
+--bg-secondary: #f9fafb     /* 卡片/面板 */
+--bg-tertiary: #f3f4f6      /* 悬停背景 */
+--bg-hover: #e5e7eb         /* 激活背景 */
 
 /* 文字 */
---text-primary: #1c1917      /* 标题、正文 */
---text-secondary: #57534e    /* 次要文字 */
---text-tertiary: #78716c     /* 辅助说明 */
---text-quaternary: #a8a29e   /* 占位符 */
+--text-primary: #111827     /* 主文字 */
+--text-secondary: #374151   /* 次要文字 */
+--text-tertiary: #6b7280    /* 辅助文字 */
+--text-muted: #9ca3af       /* 禁用文字 */
 
 /* 边框 */
---border-subtle: rgba(0,0,0,0.05)  /* 细边框 */
---border-light: #e7e5e4           /* 输入框 */
---border-default: #d6d3d1         /* 按钮边框 */
+--border-light: #f3f4f6
+--border-default: #e5e7eb
+--border-strong: #d1d5db
+
+/* 品牌 */
+--brand-primary: #000000    /* 黑色 */
+--brand-hover: #1f2937      /* 深灰 */
+--brand-light: #f3f4f6      /* 浅灰背景 */
+```
+
+### 功能色
+```css
+--accent-blue: #3b82f6      /* 蓝色强调 */
+--accent-green: #10b981     /* 成功 */
+--accent-amber: #f59e0b     /* 警告 */
+--accent-red: #ef4444       /* 错误 */
+--accent-purple: #8b5cf6    /* 紫色 */
+```
+
+### 说话人颜色
+```css
+--speaker-0: #3b82f6;  /* 蓝色 */
+--speaker-1: #10b981;  /* 绿色 */
+--speaker-2: #f59e0b;  /* 橙色 */
+--speaker-3: #ef4444;  /* 红色 */
+--speaker-4: #8b5cf6;  /* 紫色 */
+--speaker-5: #06b6d4;  /* 青色 */
 ```
 
 ---
 
-## 布局系统
+## 品牌应用
 
-### 整体布局
-```
-┌─────────────────────────────────────────────┐
-│  Sidebar (260px)   │  Main Content          │
-│                    │  ┌─────────────────┐   │
-│  Logo              │  │ Header          │   │
-│                    │  ├─────────────────┤   │
-│  Navigation        │  │                 │   │
-│  - New Chat        │  │ Viz Section     │   │
-│  - Upload          │  │ (Graph/Chart)   │   │
-│  - Voice           │  │                 │   │
-│                    │  ├─────────────────┤   │
-│  Footer            │  │ Chat Section    │   │
-│  - Status          │  │ (Messages)      │   │
-│                    │  │ [Input Area]    │   │
-└────────────────────┘  └─────────────────┘   │
+### Logo 区域
+```css
+.logo-icon {
+  background: #000000;       /* 黑色背景 */
+  color: white;              /* 白色图标 */
+}
+
+.logo-badge {
+  background: #000000;       /* 黑色标签 */
+  color: white;              /* PRO 白色文字 */
+}
 ```
 
-### 响应式断点
-| 断点 | 宽度 | 布局变化 |
-|------|------|----------|
-| Desktop | >1024px | 双栏布局，侧边栏固定 |
-| Tablet | 768-1024px | 侧边栏可收起，单栏 |
-| Mobile | <768px | 侧边栏滑出，堆叠布局 |
+### 选中状态
+```css
+.mode-btn.active,
+.panel-btn.active,
+.viz-toggle button.active {
+  background: #000000;       /* 黑色背景 */
+  color: white;              /* 白色文字 */
+}
+```
+
+### 主按钮
+```css
+.btn-primary,
+.register-voice-btn,
+.send-button {
+  background: #000000;       /* 黑色背景 */
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #1f2937;       /* 深灰悬停 */
+}
+```
+
+---
+
+## 布局结构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ▓ StreamVis ▓ PRO │ 实时会议 ● 录音中...    [图谱][图表][并列]│
+├──────────────────┼───────────────────────────────────────────┤
+│                  │  ┌─────────────┐  ┌─────────────┐        │
+│ ○ 对话/会议/头脑  │  │ 知识图谱    │  │ 数据图表    │        │
+│                  │  │  ●——●——●   │  │  ┌─┐┌─┐    │        │
+│ ⚡ 快捷操作       │  │     ●      │  │  │ ││ │    │        │
+│  + 新建会话      │  │  ●——●      │  │  └─┘└─┘    │        │
+│  📤 上传文档     │  └─────────────┘  └─────────────┘        │
+│  🎤 语音输入 ●   │                                         │
+│  👤 说话人管理   │  ┌─────────────────────────────────────┐ │
+│                  │  │  对话区域                            │ │
+│ 🧠 意图分析 (5)  │  │                                     │ │
+│  ✨ 记忆检索     │  │  👤 张三: Q1销售额120万              │ │
+│                  │  │  ▓▓▓ AI: 已生成季度趋势图          │ │
+│ ● 已连接         │  │  🎤 李四: 同比增长15%                │ │
+│ 12消息 / 8节点   │  │                                     │ │
+│                  │  │  [输入消息...                   ] [➤]│
+└──────────────────┴───────────────────────────────────────────┘
+
+▓ = 黑色品牌元素
+● = 选中/激活状态
+```
 
 ---
 
 ## 组件规范
 
-### 按钮 (Button)
+### 按钮样式
 
-**Primary Button**
+**Primary Button (黑色)**
 ```css
-.btn-primary {
-  background: #0d9488;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-weight: 500;
-  font-size: 14px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  transition: all 150ms ease;
-}
-.btn-primary:hover {
-  background: #0f766e;
+background: #000000;
+color: white;
+padding: 10px 20px;
+border-radius: 8px;
+font-weight: 500;
+transition: all 0.15s ease;
+
+&:hover {
+  background: #1f2937;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13,148,136,0.25);
 }
 ```
 
 **Secondary Button**
 ```css
-.btn-secondary {
-  background: #f5f5f4;
-  color: #57534e;
-  border: 1px solid #e7e5e4;
-  padding: 10px 20px;
-  border-radius: 10px;
-}
-.btn-secondary:hover {
-  background: #e7e5e4;
-  color: #1c1917;
+background: #f3f4f6;
+color: #374151;
+border: 1px solid #e5e7eb;
+padding: 10px 20px;
+border-radius: 8px;
+
+&:hover {
+  background: #e5e7eb;
 }
 ```
 
-### 消息气泡 (Message Bubble)
+### 消息气泡
 
-**用户消息 - 参考 Claude 设计**
+**User Message**
 ```css
-.message-user {
-  background: #f0efea;        /* 温暖灰色 */
-  color: #1c1917;
-  border-radius: 16px;
-  border-bottom-right-radius: 6px;  /* 不对称圆角 */
-  padding: 12px 16px;
-}
+background: #f3f4f6;
+color: #111827;
+border: 1px solid #e5e7eb;
+border-radius: 12px;
+border-bottom-right-radius: 4px;
 ```
 
-**AI 消息**
+**Assistant Message**
 ```css
-.message-assistant {
-  background: #f5f5f4;
-  color: #1c1917;
-  border-radius: 16px;
-  border-bottom-left-radius: 6px;
-  padding: 12px 16px;
-}
+background: #f9fafb;
+color: #111827;
+border: 1px solid #e5e7eb;
+border-radius: 12px;
+border-bottom-left-radius: 4px;
 ```
 
-**系统消息**
+### 输入框
 ```css
-.message-system {
-  background: rgba(14, 165, 233, 0.08);
-  color: #0284c7;
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 12px;
-}
-```
+background: #f9fafb;
+border: 1px solid #e5e7eb;
+border-radius: 20px;
+padding: 12px 16px;
 
-### 输入框 (Input)
-```css
-.input {
-  height: 44px;
-  padding: 0 16px;
-  background: #fafaf9;
-  border: 1px solid #e7e5e4;
-  border-radius: 12px;
-  font-size: 14px;
-  transition: all 150ms ease;
-}
-.input:hover {
-  border-color: #d6d3d1;
-}
-.input:focus {
-  background: #ffffff;
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13,148,136,0.08);
-}
-```
-
-### 卡片/面板 (Card/Panel)
-```css
-.panel {
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid rgba(0,0,0,0.05);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+&:focus {
+  border-color: #000000;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
 }
 ```
 
@@ -204,131 +218,20 @@
 
 ## 阴影系统
 
-| 名称 | 值 | 用途 |
-|------|-----|------|
-| xs | `0 1px 2px rgba(0,0,0,0.03)` | 最小提升 |
-| sm | `0 1px 3px rgba(0,0,0,0.04)` | 按钮、标签 |
-| md | `0 4px 6px -1px rgba(0,0,0,0.04)` | 卡片悬停 |
-| lg | `0 10px 15px -3px rgba(0,0,0,0.04)` | 下拉菜单 |
-| xl | `0 20px 25px -5px rgba(0,0,0,0.05)` | 模态框 |
-| accent | `0 4px 14px rgba(13,148,136,0.25)` | 主按钮悬停 |
-
----
-
-## 圆角系统
-
-| Token | 值 | 用途 |
-|-------|-----|------|
-| sm | 6px | 小按钮、标签 |
-| md | 8px | 输入框 |
-| lg | 12px | 卡片 |
-| xl | 16px | 大卡片、消息气泡 |
-| 2xl | 20px | 输入区域 |
-| full | 9999px | 圆形、胶囊形 |
-
----
-
-## 动画系统
-
-### 时长
-| 名称 | 值 | 用途 |
-|------|-----|------|
-| fast | 100ms | 颜色变化 |
-| normal | 150ms | 悬浮效果 |
-| slow | 250ms | 元素显示 |
-| slower | 350ms | 消息入场 |
-
-### 缓动函数
-| 名称 | 值 | 用途 |
-|------|-----|------|
-| ease-out | `cubic-bezier(0,0,0.2,1)` | 大多数动画 |
-| spring | `cubic-bezier(0.34,1.56,0.64,1)` | 消息入场 |
-
-### 关键动画
-```css
-/* 消息入场 */
-@keyframes messageIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 加载旋转 */
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* 脉冲 */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-```
-
----
-
-## 图表设计
-
-### 配色
-```css
-/* 节点 */
---node-fill: #0d9488;
---node-stroke: #ffffff;
---node-shadow: rgba(0,0,0,0.15);
-
-/* 连线 */
---link-stroke: #d6d3d1;
-
-/* 文字 */
---text-label: #57534e;
-```
-
-### 折线图
-```css
-/* 线条 */
---line-stroke: #0d9488;
---line-width: 3px;
-
-/* 区域填充渐变 */
---area-gradient: linear-gradient(180deg, rgba(13,148,136,0.3), rgba(13,148,136,0.02));
-
-/* 数据点 */
---dot-fill: #0d9488;
---dot-stroke: #ffffff;
---dot-stroke-width: 2.5px;
-```
-
----
-
-## 最佳实践
-
-### Do ✅
-- 使用不对称圆角（消息气泡）
-- 保持充足的留白（最小 16px）
-- 使用温暖的中性色而非纯黑纯白
-- 添加 150ms 的过渡动画
-- 悬浮时轻微上移（-1px）
-- 使用阴影而非边框来区分层次
-
-### Don't ❌
-- 避免使用 Emoji 作为图标
-- 避免纯黑（#000）和纯白（#fff）
-- 避免剧烈的动画和颜色变化
-- 避免小于 12px 的文字
-- 避免缺失焦点状态
+| 名称 | 值 |
+|------|-----|
+| shadow-sm | `0 1px 3px rgba(0, 0, 0, 0.05)` |
+| shadow-md | `0 4px 6px -1px rgba(0, 0, 0, 0.05)` |
+| shadow-lg | `0 10px 15px -3px rgba(0, 0, 0, 0.05)` |
+| shadow-xl | `0 20px 25px -5px rgba(0, 0, 0, 0.05)` |
 
 ---
 
 ## 更新日志
 
-### v2.0 (2026-01-30)
-- 全新现代化设计
-- 参考 ChatGPT/Claude 的消息设计
-- 新增侧边栏导航
-- 优化色彩系统
-- 改进动效设计
+### v3.0 (2026-01-30)
+- 明亮现代主题（白色背景）
+- 品牌色改为纯黑色 (#000000)
+- 类似 ChatGPT 的简洁风格
+- 选中状态使用黑色背景
+- 优化所有组件为明亮主题

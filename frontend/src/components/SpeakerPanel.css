@@ -1,0 +1,317 @@
+/* ==========================================
+   SpeakerPanel - 明亮主题说话人管理
+   ========================================== */
+
+.side-panel {
+  width: 320px;
+  height: 100%;
+  background: #ffffff;
+  border-left: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: all var(--duration-fast);
+}
+
+.close-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: var(--space-4) 0 var(--space-3);
+}
+
+/* 统计卡片 */
+.stats-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.stat-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  margin-bottom: var(--space-1);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 注册按钮 */
+.register-voice-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--brand-primary);
+  color: white;
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all var(--duration-fast);
+  margin-bottom: var(--space-4);
+}
+
+.register-voice-btn:hover {
+  background: var(--brand-hover);
+  transform: translateY(-1px);
+}
+
+/* 说话人列表 */
+.speaker-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.speaker-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  transition: all var(--duration-fast);
+}
+
+.speaker-card:hover {
+  border-color: var(--border-strong);
+}
+
+.speaker-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.speaker-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.speaker-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.verified-badge {
+  width: 16px;
+  height: 16px;
+  background: var(--accent-green);
+  color: white;
+  border-radius: 50%;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.speaker-id {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.edit-input {
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-primary);
+  border: 1px solid var(--brand-primary);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.speaker-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.action-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: all var(--duration-fast);
+}
+
+.action-icon:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.action-icon.delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-red);
+}
+
+/* 颜色配置 */
+.color-config {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.color-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+}
+
+.color-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.color-options {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 160px;
+}
+
+.color-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  transition: all var(--duration-fast);
+}
+
+.color-dot:hover {
+  transform: scale(1.1);
+}
+
+.color-dot.active {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 2px white, 0 0 0 4px var(--brand-primary);
+}
+
+/* 声纹列表 */
+.voiceprint-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.voiceprint-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+}
+
+.voiceprint-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.feature-id {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* 帮助文本 */
+.help-text {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.help-text p {
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+  color: var(--text-secondary);
+}
+
+.help-text ul {
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
+.help-text li {
+  margin-bottom: var(--space-1);
+}

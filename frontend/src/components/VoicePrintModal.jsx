@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Mic, Square, Save, Loader2 } from 'lucide-react';
+import { X, Mic, Square, Save, Loader2, Copy, Trash2, CloudOff, ToggleLeft, ToggleRight } from 'lucide-react';
 import './VoicePrintModal.css';
 
 const WAV_MIME = 'audio/wav';
@@ -74,12 +74,13 @@ const downsampleTo16k = (float32Array, inputSampleRate) => {
   return out;
 };
 
-const VoicePrintModal = ({ open, onClose, onRegistered }) => {
+const VoicePrintModal = ({ open, onClose, onRegistered, voicePrints, onUpdateVoicePrints }) => {
   const [status, setStatus] = useState('idle');
   const [uid, setUid] = useState('');
   const [speakerName, setSpeakerName] = useState('');
   const [error, setError] = useState('');
   const [featureId, setFeatureId] = useState('');
+  const [busyKey, setBusyKey] = useState('');
 
   const streamRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -187,6 +188,56 @@ const VoicePrintModal = ({ open, onClose, onRegistered }) => {
     }
   };
 
+  const listEntries = useMemo(() => {
+    const obj = voicePrints || {};
+    return Object.entries(obj).map(([name, vp]) => ({
+      name,
+      featureId: vp?.featureId || '',
+      enabled: Boolean(vp?.enabled ?? true),
+    }));
+  }, [voicePrints]);
+
+  const setEntryEnabled = (name, enabled) => {
+    onUpdateVoicePrints?.((prev) => ({
+      ...(prev || {}),
+      [name]: { ...(prev?.[name] || {}), enabled: Boolean(enabled) },
+    }));
+  };
+
+  const removeLocal = (name) => {
+    onUpdateVoicePrints?.((prev) => {
+      const next = { ...(prev || {}) };
+      delete next[name];
+      return next;
+    });
+  };
+
+  const deleteCloud = async (name, fid) => {
+    if (!fid) return;
+    setBusyKey(name);
+    setError('');
+    try {
+      const url = `http://localhost:8000/api/xfyun/voiceprint/delete?feature_ids=${encodeURIComponent(fid)}`;
+      const resp = await fetch(url, { method: 'POST' });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.detail || '云端删除失败');
+      const code = String(data?.code || '');
+      if (code && code !== '000000') throw new Error(String(data?.desc || '云端删除失败'));
+      removeLocal(name);
+    } catch (e) {
+      setError(e?.message || '云端删除失败');
+    } finally {
+      setBusyKey('');
+    }
+  };
+
+  const copyToClipboard = async (text) => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {}
+  };
+
   if (!open) return null;
 
   const getStatusDisplay = () => {
@@ -222,6 +273,47 @@ const VoicePrintModal = ({ open, onClose, onRegistered }) => {
         </div>
 
         <div className="modal-body">
+          {listEntries.length > 0 && (
+            <div className="vp-list">
+              <div className="vp-list-title">已注册声纹</div>
+              {listEntries.map((it) => (
+                <div key={it.name} className="vp-item">
+                  <div className="vp-left">
+                    <div className="vp-name">{it.name}</div>
+                    <div className="vp-meta">
+                      <span className="vp-code">{it.featureId ? `${it.featureId.slice(0, 10)}…` : '—'}</span>
+                    </div>
+                  </div>
+                  <div className="vp-actions">
+                    <button
+                      className="vp-btn"
+                      type="button"
+                      onClick={() => setEntryEnabled(it.name, !it.enabled)}
+                      title={it.enabled ? '已启用：会随语音一起上传' : '未启用：不会参与分离'}
+                    >
+                      {it.enabled ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                    </button>
+                    <button className="vp-btn" type="button" onClick={() => copyToClipboard(it.featureId)} title="复制 feature_id">
+                      <Copy size={16} />
+                    </button>
+                    <button className="vp-btn" type="button" onClick={() => removeLocal(it.name)} title="仅本地移除">
+                      <Trash2 size={16} />
+                    </button>
+                    <button
+                      className="vp-btn"
+                      type="button"
+                      onClick={() => deleteCloud(it.name, it.featureId)}
+                      disabled={busyKey === it.name}
+                      title="云端删除（同时本地移除）"
+                    >
+                      {busyKey === it.name ? <Loader2 size={16} className="animate-spin" /> : <CloudOff size={16} />}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* 录音状态指示器 */}
           {status === 'recording' && (
             <div className="recording-indicator">
@@ -279,7 +371,7 @@ const VoicePrintModal = ({ open, onClose, onRegistered }) => {
               <li>请在安静环境下录音</li>
               <li>保持正常语速，朗读任意文本</li>
               <li>录音时长需在 10-60 秒之间</li>
-              <li>注册后可在语音转写中识别说话人</li>
+              <li>注册后请保持“启用”状态，语音转写会自动携带 feature_ids</li>
             </ul>
           </div>
         </div>

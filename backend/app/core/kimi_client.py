@@ -97,6 +97,8 @@ class KimiClient:
             temp = 0.0
         if temp > 1.0:
             temp = 1.0
+        if "kimi-k2.5" in self._model:
+            temp = 1.0
 
         payload: Dict[str, Any] = {
             "model": self._model,
@@ -130,6 +132,8 @@ class KimiClient:
         if temp < 0.0:
             temp = 0.0
         if temp > 1.0:
+            temp = 1.0
+        if "kimi-k2.5" in self._model:
             temp = 1.0
 
         payload: Dict[str, Any] = {

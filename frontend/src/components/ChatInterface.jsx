@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Mic, User, Bot, Radio } from 'lucide-react';
 import './ChatInterface.css';
 
-const ChatInterface = ({ messages, onSendMessage, disabled }) => {
+const ChatInterface = ({ messages, onSendMessage, speakers, disabled }) => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -17,7 +17,6 @@ const ChatInterface = ({ messages, onSendMessage, disabled }) => {
   }, [messages]);
 
   useEffect(() => {
-    // Auto-focus input when connected
     if (!disabled && inputRef.current) {
       inputRef.current.focus();
     }
@@ -37,77 +36,67 @@ const ChatInterface = ({ messages, onSendMessage, disabled }) => {
     }
   };
 
-  const getMessageIcon = (role) => {
-    switch (role) {
-      case 'user':
-        return (
-          <div className="message-avatar user">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </div>
-        );
-      case 'assistant':
-        return (
-          <div className="message-avatar assistant">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 3L20 7.5V16.5L12 21L4 16.5V7.5L12 3Z" />
-              <path d="M12 12L20 7.5" />
-              <path d="M12 12V21" />
-              <path d="M12 12L4 7.5" />
-            </svg>
-          </div>
-        );
-      case 'system':
-        return (
-          <div className="message-avatar system">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 16v-4" />
-              <path d="M12 8h.01" />
-            </svg>
-          </div>
-        );
-      default:
-        return null;
-    }
+  // 获取发言人颜色
+  const getSpeakerColor = (speakerKey) => {
+    if (!speakerKey) return '#3b82f6';
+    return speakers[speakerKey]?.color || '#3b82f6';
+  };
+
+  // 获取发言人名称
+  const getSpeakerName = (speakerKey) => {
+    if (!speakerKey) return '未知';
+    return speakers[speakerKey]?.name || `发言人${parseInt(speakerKey.replace('spk', '')) + 1}`;
   };
 
   return (
-    <div className="chat-wrapper">
+    <div className="chat-interface">
       {/* 消息列表 */}
       <div className="chat-messages" ref={containerRef}>
         {messages.length === 0 ? (
-          <div className="chat-welcome">
-            <div className="welcome-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M12 3L20 7.5V16.5L12 21L4 16.5V7.5L12 3Z" />
-                <path d="M12 12L20 7.5" />
-                <path d="M12 12V21" />
-                <path d="M12 12L4 7.5" />
-              </svg>
+          <div className="welcome-screen">
+            <div className="welcome-logo">
+              <div className="logo-glow" />
+              <Radio size={48} />
             </div>
-            <h2 className="welcome-title">StreamVis</h2>
-            <p className="welcome-subtitle">智能数据可视化助手</p>
-            <div className="welcome-examples">
+            <h2 className="welcome-title">StreamVis Pro</h2>
+            <p className="welcome-subtitle">
+              实时意图成图 · 多人会议 · 智能可视化
+            </p>
+            
+            <div className="feature-chips">
+              <div className="chip">
+                <Mic size={14} />
+                <span>语音输入自动转录</span>
+              </div>
+              <div className="chip">
+                <User size={14} />
+                <span>说话人自动分离</span>
+              </div>
+              <div className="chip">
+                <Bot size={14} />
+                <span>AI 智能意图识别</span>
+              </div>
+            </div>
+
+            <div className="quick-prompts">
+              <div className="prompts-title">快速开始</div>
               <button 
-                className="example-chip" 
-                onClick={() => onSendMessage('帮我分析销售数据，创建一个趋势图')}
+                className="prompt-btn" 
+                onClick={() => onSendMessage('我们来讨论Q1销售数据：Q1=120万，Q2=135万，Q3=98万，Q4=156万')}
               >
-                📈 分析销售数据趋势
+                📊 分析季度销售数据
               </button>
               <button 
-                className="example-chip" 
-                onClick={() => onSendMessage('用图谱展示公司组织架构')}
+                className="prompt-btn" 
+                onClick={() => onSendMessage('头脑风暴一下新产品功能，我需要可视化思路')}
               >
-                🕸️ 展示组织架构
+                💡 新产品功能头脑风暴
               </button>
               <button 
-                className="example-chip" 
-                onClick={() => onSendMessage('生成一个项目进度甘特图')}
+                className="prompt-btn" 
+                onClick={() => onSendMessage('画一个公司组织架构图')}
               >
-                📊 生成项目进度图
+                🏢 生成组织架构图
               </button>
             </div>
           </div>
@@ -115,19 +104,65 @@ const ChatInterface = ({ messages, onSendMessage, disabled }) => {
           <div className="messages-container">
             {messages.map((msg, idx) => (
               <div 
-                key={idx} 
-                className={`message-group ${msg.role}`}
-                style={{ animationDelay: `${idx * 50}ms` }}
+                key={msg.id || idx} 
+                className={`message ${msg.role} ${msg.type || ''}`}
+                style={{ animationDelay: `${idx * 30}ms` }}
               >
-                <div className="message-content-wrapper">
-                  {getMessageIcon(msg.role)}
-                  <div className="message-body">
-                    {msg.speaker && (
-                      <div className="message-speaker">{msg.speaker}</div>
-                    )}
-                    <div className="message-bubble">
-                      <div className="message-text">{msg.content}</div>
+                <div className="message-avatar">
+                  {msg.role === 'user' && msg.type === 'voice' && (
+                    <div 
+                      className="avatar voice"
+                      style={{ 
+                        background: `${getSpeakerColor(msg.speakerKey)}20`,
+                        borderColor: getSpeakerColor(msg.speakerKey)
+                      }}
+                    >
+                      <Mic size={14} style={{ color: getSpeakerColor(msg.speakerKey) }} />
                     </div>
+                  )}
+                  {msg.role === 'user' && msg.type !== 'voice' && (
+                    <div className="avatar user">
+                      <User size={16} />
+                    </div>
+                  )}
+                  {msg.role === 'assistant' && (
+                    <div className="avatar assistant">
+                      <Bot size={16} />
+                    </div>
+                  )}
+                  {msg.role === 'system' && (
+                    <div className="avatar system">⚡</div>
+                  )}
+                </div>
+
+                <div className="message-content">
+                  {msg.speaker && (
+                    <div 
+                      className="speaker-tag"
+                      style={{ color: getSpeakerColor(msg.speakerKey) }}
+                    >
+                      {msg.speaker}
+                    </div>
+                  )}
+                  <div className="message-bubble">
+                    <div className="message-text">{msg.content}</div>
+                  </div>
+                  <div className="message-meta">
+                    {msg.timestamp && (
+                      <span className="timestamp">
+                        {new Date(msg.timestamp).toLocaleTimeString('zh-CN', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </span>
+                    )}
+                    {!msg.isFinal && (
+                      <span className="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -148,7 +183,7 @@ const ChatInterface = ({ messages, onSendMessage, disabled }) => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={disabled ? '正在连接服务器...' : '输入消息，描述您的数据或问题...'}
+                placeholder={disabled ? '正在连接服务器...' : '输入消息，或描述数据生成图表...'}
                 disabled={disabled}
                 className="chat-input"
               />
@@ -165,9 +200,10 @@ const ChatInterface = ({ messages, onSendMessage, disabled }) => {
               </button>
             </div>
           </form>
-          <div className="input-footer">
-            <span className="input-hint">
-              按 Enter 发送，Shift + Enter 换行
+          <div className="input-hint">
+            <span>按 Enter 发送 · Shift + Enter 换行</span>
+            <span className="hint-shortcuts">
+              支持多人讨论 · 语音输入 · 实时成图
             </span>
           </div>
         </div>
